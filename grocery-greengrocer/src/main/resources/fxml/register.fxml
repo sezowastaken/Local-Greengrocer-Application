@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Text?>
+
+<StackPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.group25.greengrocer.controller.RegisterController"
+           stylesheets="@../css/app.css">
+    
+    <VBox alignment="CENTER" maxWidth="400" maxHeight="450" styleClass="login-container">
+        <Text text="Register New Account" styleClass="login-title"/>
+        
+        <Label text="Join Group25 Greengrocer" style="-fx-text-fill: #666;"/>
+        
+        <VBox spacing="5" alignment="CENTER_LEFT">
+            <Label text="Username"/>
+            <TextField fx:id="usernameField" promptText="Choose a username"/>
+        </VBox>
+        
+        <VBox spacing="5" alignment="CENTER_LEFT">
+            <Label text="Password"/>
+            <PasswordField fx:id="passwordField" promptText="Choose a password"/>
+        </VBox>
+        
+        <VBox spacing="5" alignment="CENTER_LEFT">
+            <Label text="Confirm Password"/>
+            <PasswordField fx:id="confirmPasswordField" promptText="Retype password"/>
+        </VBox>
+
+        <VBox spacing="5" alignment="CENTER_LEFT">
+            <Label text="Role"/>
+            <ComboBox fx:id="roleComboBox" maxWidth="Infinity" promptText="Select Role" />
+        </VBox>
+        
+        <Button text="Register" onAction="#handleRegister" maxWidth="Infinity" styleClass="button-primary" defaultButton="true"/>
+        
+        <Label fx:id="messageLabel" styleClass="error-label"/>
+        
+        <Hyperlink text="Already have an account? Login" onAction="#handleGoToLogin" style="-fx-text-fill: #4CAF50;"/>
+    </VBox>
+    
+</StackPane>

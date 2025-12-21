@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.text.Text?>
+
+<StackPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.group25.greengrocer.controller.LoginController"
+           stylesheets="@../css/app.css">
+    
+    <VBox alignment="CENTER" maxWidth="400" maxHeight="350" styleClass="login-container">
+        <Text text="Group25 Greengrocer" styleClass="login-title"/>
+        
+        <Label text="Please sign in to continue" style="-fx-text-fill: #666;"/>
+        
+        <VBox spacing="5" alignment="CENTER_LEFT">
+            <Label text="Username"/>
+            <TextField fx:id="usernameField" promptText="Enter username"/>
+        </VBox>
+        
+        <VBox spacing="5" alignment="CENTER_LEFT">
+            <Label text="Password"/>
+            <PasswordField fx:id="passwordField" promptText="Enter password"/>
+        </VBox>
+        
+        <Button text="Login" onAction="#handleLogin" maxWidth="Infinity" styleClass="button-primary" defaultButton="true"/>
+        
+        <Label fx:id="errorLabel" styleClass="error-label"/>
+        
+        <Hyperlink text="Don't have an account? Register" onAction="#handleRegisterLink" style="-fx-text-fill: #4CAF50;"/>
+    </VBox>
+    
+</StackPane>
