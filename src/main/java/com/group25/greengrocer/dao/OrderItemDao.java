@@ -29,7 +29,13 @@ public class OrderItemDao {
 
     public List<OrderItem> findByOrderId(long orderId) throws SQLException {
         List<OrderItem> items = new ArrayList<>();
-        String sql = "SELECT * FROM order_items WHERE order_id = ?";
+
+        // JOIN with products table to get product names
+        String sql = "SELECT oi.*, p.name as product_name " +
+                "FROM order_items oi " +
+                "JOIN products p ON oi.product_id = p.id " +
+                "WHERE oi.order_id = ? " +
+                "ORDER BY p.name";
 
         try (Connection conn = DbAdapter.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -46,6 +52,10 @@ public class OrderItemDao {
                             rs.getDouble("quantity"),
                             rs.getDouble("unit_price_snapshot"),
                             rs.getDouble("line_total"));
+
+                    // Set product name from JOIN result
+                    item.setProductName(rs.getString("product_name"));
+
                     items.add(item);
                 }
             }

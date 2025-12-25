@@ -58,6 +58,12 @@ public class LoginController {
                     javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
                             getClass().getResource("/fxml/carrier.fxml"));
                     javafx.scene.Parent root = loader.load();
+
+                    // Pass session data
+                    CarrierController controller = loader.getController();
+                    controller.setCarrierSession(userId, username);
+                    controller.handleRefreshAll();
+
                     usernameField.getScene().setRoot(root);
                 } else if ("owner".equalsIgnoreCase(role)) {
                     javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
