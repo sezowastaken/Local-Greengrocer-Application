@@ -6,15 +6,17 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.control.*;
-import javafx.scene.image.Image;
+
 import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.Region;
 import javafx.scene.text.Text;
 
 import java.io.IOException;
 import java.util.List;
+import javafx.collections.ObservableList;
 
 public class CustomerController {
 
@@ -26,6 +28,116 @@ public class CustomerController {
     private FlowPane fruitPane;
     @FXML
     private TabPane productTabPane;
+    @FXML
+    private ToggleButton vegetablesToggle;
+    @FXML
+    private ToggleButton fruitsToggle;
+    @FXML
+    private ToggleGroup categoryToggleGroup;
+    @FXML
+    private HBox selectorBar;
+    @FXML
+    private ScrollPane vegetableView;
+    @FXML
+    private ScrollPane fruitView;
+
+    // Header Buttons for Animation
+    @FXML
+    private Button shopButton;
+    @FXML
+    private Button cartButton;
+    @FXML
+    private MenuButton menuButton;
+
+    @FXML
+    public void initialize() {
+        // Create Vegetables Toggle Content: Icon + Label in VBox
+        javafx.scene.shape.SVGPath vegIcon = new javafx.scene.shape.SVGPath();
+        vegIcon.setContent(
+                "M17,8C8,10 5.9,16.17 3.82,21.34L5.71,22L6.66,19.7C7.14,19.87 7.64,20 8,20C19,20 22,3 22,3C21,5 14,5.25 9,6.25C4,7.25 2,11.5 2,13.5C2,15.5 3.75,17.25 3.75,17.25C7,8 17,8 17,8Z");
+        vegIcon.getStyleClass().add("selector-icon");
+        vegIcon.setScaleX(0.9);
+        vegIcon.setScaleY(0.9);
+
+        Label vegLabel = new Label("Vegetables");
+        vegLabel.getStyleClass().add("selector-label");
+
+        VBox vegBox = new VBox(6, vegIcon, vegLabel);
+        vegBox.setAlignment(javafx.geometry.Pos.CENTER);
+        vegetablesToggle.setGraphic(vegBox);
+
+        // Create Fruits Toggle Content: Icon + Label in VBox
+        javafx.scene.shape.SVGPath fruitIcon = new javafx.scene.shape.SVGPath();
+        fruitIcon.setContent(
+                "M20,10C22,13 17,22 15,22C13,22 13,21 12,21C11,21 11,22 9,22C7,22 2,13 4,10C6,7 9,7 11,8V5H13V8C15,7 18,7 20,10Z");
+        fruitIcon.getStyleClass().add("selector-icon");
+        fruitIcon.setScaleX(0.9);
+        fruitIcon.setScaleY(0.9);
+
+        Label fruitLabel = new Label("Fruits");
+        fruitLabel.getStyleClass().add("selector-label");
+
+        VBox fruitBox = new VBox(6, fruitIcon, fruitLabel);
+        fruitBox.setAlignment(javafx.geometry.Pos.CENTER);
+        fruitsToggle.setGraphic(fruitBox);
+
+        // Set default selection
+        vegetablesToggle.setSelected(true);
+
+        // Add listener to toggle views
+        categoryToggleGroup.selectedToggleProperty().addListener((obs, oldToggle, newToggle) -> {
+            if (newToggle == vegetablesToggle) {
+                vegetableView.setVisible(true);
+                vegetableView.setManaged(true);
+                fruitView.setVisible(false);
+                fruitView.setManaged(false);
+            } else if (newToggle == fruitsToggle) {
+                vegetableView.setVisible(false);
+                vegetableView.setManaged(false);
+                fruitView.setVisible(true);
+                fruitView.setManaged(true);
+            }
+        });
+
+        // Apply smooth hover animations
+        applyHoverScale(shopButton, 1.05);
+        applyHoverScale(cartButton, 1.05);
+        applyHoverScale(menuButton, 1.05);
+        applyHoverScale(vegetablesToggle, 1.05);
+        applyHoverScale(fruitsToggle, 1.05);
+
+        refreshProductCards();
+    }
+
+    private void applyHoverScale(javafx.scene.Node node, double scaleFactor) {
+        if (node == null)
+            return;
+
+        // Scale Transition Up
+        javafx.animation.ScaleTransition scaleUp = new javafx.animation.ScaleTransition(
+                javafx.util.Duration.millis(200), node);
+        scaleUp.setToX(scaleFactor);
+        scaleUp.setToY(scaleFactor);
+        scaleUp.setInterpolator(javafx.animation.Interpolator.EASE_OUT);
+
+        // Scale Transition Down
+        javafx.animation.ScaleTransition scaleDown = new javafx.animation.ScaleTransition(
+                javafx.util.Duration.millis(200), node);
+        scaleDown.setToX(1.0);
+        scaleDown.setToY(1.0);
+        scaleDown.setInterpolator(javafx.animation.Interpolator.EASE_OUT);
+
+        node.setOnMouseEntered(e -> {
+            scaleDown.stop();
+            scaleUp.playFromStart();
+        });
+
+        node.setOnMouseExited(e -> {
+            scaleUp.stop();
+            scaleDown.playFromStart();
+        });
+    }
+
     @FXML
     private VBox cartView;
     @FXML
@@ -125,31 +237,65 @@ public class CustomerController {
         }
     }
 
-    @FXML
-    public void initialize() {
-        refreshProductCards();
-    }
-
     private void refreshProductCards() {
         loadProducts("Vegetable", vegPane);
         loadProducts("Fruit", fruitPane);
     }
 
+    // Optimized to reuse nodes and prevent animation reset
     private void loadProducts(String category, FlowPane pane) {
-        pane.getChildren().clear();
         List<Product> products = productDao.getProductsByCategory(category);
+        ObservableList<javafx.scene.Node> children = pane.getChildren();
 
-        for (Product product : products) {
-            // Update local map with fresh DB values initially
+        // 1. Update existing nodes or create new ones
+        for (int i = 0; i < products.size(); i++) {
+            Product product = products.get(i);
+
+            // Update local stock map initially
             localStockMap.put(product.getId(), product.getStock());
-            pane.getChildren().add(createProductCard(product));
+
+            VBox card;
+            if (i < children.size() && children.get(i) instanceof VBox) {
+                // Reuse existing node
+                card = (VBox) children.get(i);
+            } else {
+                // Create new node
+                card = createBaseProductCard();
+                if (i < children.size()) {
+                    children.set(i, card); // Replace wrong node if any
+                } else {
+                    children.add(card); // Append new
+                }
+            }
+
+            // Update UI content on the reused/new card
+            updateProductCardUI(card, product);
+        }
+
+        // 2. Remove excess nodes if any
+        if (pane.getChildren().size() > products.size()) {
+            pane.getChildren().remove(products.size(), pane.getChildren().size());
         }
     }
 
-    private VBox createProductCard(Product product) {
+    private VBox createBaseProductCard() {
         VBox card = new VBox(5);
         card.getStyleClass().add("product-card");
         card.setPrefWidth(150);
+
+        // Apply smooth scale animation to the ROOT node of the card
+        applyHoverScale(card, 1.05); // 1.05 scale as per request
+
+        return card;
+    }
+
+    private void updateProductCardUI(VBox card, Product product) {
+        // Store ID for reference (optional but good practice)
+        card.setUserData(product.getId());
+
+        // Clear children to rebuild content (this does NOT trigger mouse exit on the
+        // card itself)
+        card.getChildren().clear();
 
         if (product.getProductImage() != null) {
             ImageView imgView = new ImageView(product.getProductImage());
@@ -167,7 +313,7 @@ public class CustomerController {
         priceLabel.getStyleClass().add("product-price");
 
         Label stockLabel = new Label("Stock: " + product.getStock() + (product.isPiece() ? "" : " kg"));
-        stockLabel.setStyle("-fx-text-fill: #aaa; -fx-font-size: 12px;");
+        stockLabel.getStyleClass().add("product-stock-label");
 
         // Check if item is in cart
         CartItem cartItem = findInCart(product);
@@ -181,8 +327,6 @@ public class CustomerController {
         } else {
             card.getChildren().addAll(nameLabel, priceLabel, stockLabel, createQtyBox(cartItem));
         }
-
-        return card;
     }
 
     private HBox createQtyBox(CartItem item) {
@@ -356,16 +500,26 @@ public class CustomerController {
 
     @FXML
     private void handleViewCart() {
-        productTabPane.setVisible(false);
+        hideAllViews();
         cartView.setVisible(true);
         updateCartView();
     }
 
     @FXML
     private void handleBackToShop() {
-        cartView.setVisible(false);
-        productTabPane.setVisible(true);
-        refreshProductCards(); // Refresh to ensure sync
+        hideAllViews();
+        // Show selector bar
+        selectorBar.setVisible(true);
+        selectorBar.setManaged(true);
+        // Show the currently selected view (vegetable or fruit)
+        if (vegetablesToggle.isSelected()) {
+            vegetableView.setVisible(true);
+            vegetableView.setManaged(true);
+        } else {
+            fruitView.setVisible(true);
+            fruitView.setManaged(true);
+        }
+        refreshProductCards();
     }
 
     private void updateCartView() {
@@ -414,6 +568,185 @@ public class CustomerController {
             welcomeText.getScene().setRoot(root);
         } catch (IOException e) {
             e.printStackTrace();
+        }
+    }
+
+    @FXML
+    private VBox profileView;
+    @FXML
+    private TextField profileNameField;
+    @FXML
+    private TextArea profileAddressField;
+    @FXML
+    private TextField profilePhoneField;
+    @FXML
+    private TextField profileCityField;
+
+    @FXML
+    private VBox orderHistoryView;
+    @FXML
+    private VBox ordersContainer;
+
+    @FXML
+    private void handleViewProfile() {
+        hideAllViews();
+        profileView.setVisible(true);
+        loadProfileData();
+    }
+
+    @FXML
+    private void handleViewOrders() {
+        hideAllViews();
+        orderHistoryView.setVisible(true);
+        loadOrderHistory();
+    }
+
+    private void hideAllViews() {
+        selectorBar.setVisible(false);
+        selectorBar.setManaged(false);
+        vegetableView.setVisible(false);
+        vegetableView.setManaged(false);
+        fruitView.setVisible(false);
+        fruitView.setManaged(false);
+        cartView.setVisible(false);
+        profileView.setVisible(false);
+        orderHistoryView.setVisible(false);
+    }
+
+    @FXML
+    private void handleSaveProfile() {
+        String address = profileAddressField.getText();
+        String city = profileCityField.getText();
+        String phone = profilePhoneField.getText();
+
+        String sql = "UPDATE users SET address_line = ?, city = ?, phone = ? WHERE id = ?";
+
+        try (java.sql.Connection conn = com.group25.greengrocer.util.DbAdapter.getConnection();
+                java.sql.PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, address);
+            stmt.setString(2, city);
+            stmt.setString(3, phone);
+            stmt.setLong(4, customerId);
+
+            int rows = stmt.executeUpdate();
+            if (rows > 0) {
+                showAlert(Alert.AlertType.INFORMATION, "Success", "Profile updated successfully!");
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Error", "Could not update profile.");
+            }
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Database Error", "Update failed: " + e.getMessage());
+        }
+    }
+
+    private void loadProfileData() {
+        profileNameField.setText(welcomeText.getText().replace("Welcome, ", ""));
+
+        String sql = "SELECT address_line, city, phone FROM users WHERE id = ?";
+        try (java.sql.Connection conn = com.group25.greengrocer.util.DbAdapter.getConnection();
+                java.sql.PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setLong(1, customerId);
+            try (java.sql.ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    profileAddressField.setText(rs.getString("address_line"));
+                    profileCityField.setText(rs.getString("city"));
+                    try {
+                        profilePhoneField.setText(rs.getString("phone"));
+                    } catch (Exception e) {
+                    }
+                }
+            }
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void loadOrderHistory() {
+        ordersContainer.getChildren().clear();
+        com.group25.greengrocer.dao.OrderDao orderDao = new com.group25.greengrocer.dao.OrderDao();
+
+        try {
+            List<com.group25.greengrocer.model.Order> orders = orderDao.findByCustomerId(customerId);
+
+            if (orders.isEmpty()) {
+                ordersContainer.getChildren().add(new Label("No past orders found."));
+                return;
+            }
+
+            for (com.group25.greengrocer.model.Order order : orders) {
+                VBox card = new VBox(5);
+                card.getStyleClass().add("order-card");
+
+                HBox header = new HBox(10);
+                header.setAlignment(javafx.geometry.Pos.CENTER_LEFT); // Align items vertically center
+
+                Label dateLabel = new Label("Date: " + order.getOrderTime().toLocalDate());
+                dateLabel.getStyleClass().add("order-date-label");
+
+                Label statusLabel = new Label(order.getStatus().name());
+                statusLabel.getStyleClass().add("status-label");
+
+                switch (order.getStatus()) {
+                    case PLACED:
+                        statusLabel.getStyleClass().add("status-placed");
+                        break;
+                    case DELIVERED:
+                        statusLabel.getStyleClass().add("status-delivered");
+                        break;
+                    case CANCELLED:
+                        statusLabel.getStyleClass().add("status-cancelled");
+                        break;
+                    default:
+                        break;
+                }
+
+                Region spacer = new Region();
+                HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
+
+                Label totalLabel = new Label("Total: $" + String.format("%.2f", order.getTotal()));
+                totalLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #333;");
+
+                header.getChildren().addAll(dateLabel, spacer, statusLabel, new Label("|"), totalLabel);
+
+                if (order.getStatus() == com.group25.greengrocer.model.OrderStatus.PLACED) {
+                    Button cancelButton = new Button("Cancel");
+                    cancelButton.getStyleClass().add("button-danger");
+                    cancelButton.setOnAction(e -> handleCancelOrder(order.getId()));
+                    header.getChildren().add(cancelButton);
+                }
+
+                Label itemsLabel = new Label("Order ID: #" + order.getId());
+                itemsLabel.getStyleClass().add("order-id-label");
+
+                card.getChildren().addAll(header, itemsLabel);
+                ordersContainer.getChildren().add(card);
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            ordersContainer.getChildren().add(new Label("Error loading orders."));
+        }
+    }
+
+    private void handleCancelOrder(long orderId) {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Cancel Order");
+        alert.setHeaderText("Confirm Cancellation");
+        alert.setContentText("Are you sure you want to cancel this order?");
+        styleAlert(alert);
+
+        if (alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK) {
+            com.group25.greengrocer.dao.OrderDao dao = new com.group25.greengrocer.dao.OrderDao();
+            try {
+                dao.cancelOrder(orderId);
+                showAlert(Alert.AlertType.INFORMATION, "Cancelled", "Order has been cancelled.");
+                loadOrderHistory();
+            } catch (Exception e) {
+                showAlert(Alert.AlertType.ERROR, "Cancelling Failed", e.getMessage());
+            }
         }
     }
 

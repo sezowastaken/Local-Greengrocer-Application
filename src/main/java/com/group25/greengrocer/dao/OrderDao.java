@@ -101,6 +101,20 @@ public class OrderDao {
         }
     }
 
+    public void cancelOrder(long orderId) throws SQLException {
+        String sql = "UPDATE orders SET status = 'CANCELLED', cancelled_time = ? WHERE id = ? AND status = 'PLACED'";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setTimestamp(1, Timestamp.valueOf(LocalDateTime.now()));
+            stmt.setLong(2, orderId);
+            int rows = stmt.executeUpdate();
+            if (rows == 0) {
+                throw new SQLException(
+                        "Could not cancel order. It may be too late to cancel (already assigned/delivered).");
+            }
+        }
+    }
+
     private Order mapRowToOrder(ResultSet rs) throws SQLException {
         Order order = new Order();
         order.setId(rs.getLong("id"));
