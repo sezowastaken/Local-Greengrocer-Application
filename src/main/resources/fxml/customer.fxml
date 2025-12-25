@@ -47,7 +47,7 @@
 
                 <HBox spacing="20" alignment="CENTER">
                     <Button text="Back to Shopping" onAction="#handleBackToShop" styleClass="button-secondary"/>
-                    <Button text="Checkout" styleClass="button-primary" style="-fx-font-size: 16px; -fx-padding: 10 30;"/>
+                    <Button text="Checkout" onAction="#handlePlaceOrder" styleClass="button-primary" style="-fx-font-size: 16px; -fx-padding: 10 30;"/>
                 </HBox>
             </VBox>
         </StackPane>

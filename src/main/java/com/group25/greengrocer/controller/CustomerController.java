@@ -50,6 +50,81 @@ public class CustomerController {
         }
     }
 
+    private long customerId;
+
+    public void setCustomerSession(long id, String name) {
+        this.customerId = id;
+        welcomeText.setText("Welcome, " + name);
+    }
+
+    @FXML
+    private void handlePlaceOrder() {
+        if (cart.isEmpty()) {
+            showAlert(Alert.AlertType.ERROR, "Cart is Empty", "Please add items to your cart before checking out.");
+            return;
+        }
+
+        if (customerId == 0) {
+            // Ideally should not happen if login flow is correct, but safer to check
+            showAlert(Alert.AlertType.ERROR, "Session Error", "Please logout and login again.");
+            return;
+        }
+
+        try {
+            // Build Order Object
+            com.group25.greengrocer.model.Order order = new com.group25.greengrocer.model.Order();
+            order.setCustomerId(customerId);
+            order.setStatus(com.group25.greengrocer.model.OrderStatus.PLACED);
+            order.setOrderTime(java.time.LocalDateTime.now());
+            order.setRequestedDeliveryTime(java.time.LocalDateTime.now().plusDays(1)); // Default next day
+
+            // Calculate totals
+            double subtotal = 0;
+            for (CartItem ci : cart)
+                subtotal += ci.getTotalPrice();
+
+            order.setSubtotal(subtotal);
+            order.setVatRate(18.0); // Example VAT
+            order.setVatTotal(subtotal * 0.18);
+            order.setTotal(subtotal + order.getVatTotal());
+            order.setDiscountTotal(0); // If coupons implemented later
+
+            // Build Items
+            java.util.List<com.group25.greengrocer.model.OrderItem> orderItems = new java.util.ArrayList<>();
+            for (CartItem ci : cart) {
+                com.group25.greengrocer.model.OrderItem oi = new com.group25.greengrocer.model.OrderItem(
+                        0, 0,
+                        ci.product.getId(),
+                        ci.product.isPiece() ? com.group25.greengrocer.model.UnitType.PCS
+                                : com.group25.greengrocer.model.UnitType.KG,
+                        ci.quantity,
+                        ci.product.getPrice(),
+                        ci.getTotalPrice());
+                orderItems.add(oi);
+            }
+
+            // Call Service
+            com.group25.greengrocer.service.OrderService orderService = new com.group25.greengrocer.service.OrderService();
+            orderService.placeOrder(order, orderItems);
+
+            // Success
+            cart.clear();
+            localStockMap.clear(); // Clear local cache to force refresh from DB on next load
+            refreshProductCards();
+            updateCartView();
+
+            showAlert(Alert.AlertType.INFORMATION, "Order Successful",
+                    "Your order has been placed successfully! Order ID: " + order.getId());
+
+            // Navigate back to shop or stay? Usually stay or show empty cart.
+            handleBackToShop();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Order Failed", "Could not place order: " + e.getMessage());
+        }
+    }
+
     @FXML
     public void initialize() {
         refreshProductCards();
@@ -65,6 +140,8 @@ public class CustomerController {
         List<Product> products = productDao.getProductsByCategory(category);
 
         for (Product product : products) {
+            // Update local map with fresh DB values initially
+            localStockMap.put(product.getId(), product.getStock());
             pane.getChildren().add(createProductCard(product));
         }
     }
@@ -119,12 +196,83 @@ public class CustomerController {
         Label qtyLabel = new Label(String.format(item.product.isPiece() ? "%.0f" : "%.2f", item.quantity));
         qtyLabel.getStyleClass().add("qty-text");
 
+        // Make the label itself interactive to save space as requested
+        qtyLabel.setTooltip(new Tooltip("Click to edit manually"));
+        qtyLabel.setOnMouseClicked(e -> handleManualQuantity(item));
+        qtyLabel.getStyleClass().add("qty-label-interactive");
+
         Button plusBtn = new Button("+");
         plusBtn.getStyleClass().add("qty-btn");
         plusBtn.setOnAction(e -> handleIncrement(item));
 
         qtyBox.getChildren().addAll(minusBtn, qtyLabel, plusBtn);
+
         return qtyBox;
+    }
+
+    private void handleManualQuantity(CartItem item) {
+        TextInputDialog dialog = new TextInputDialog(String.valueOf(item.quantity));
+        dialog.setTitle("Set Quantity");
+        dialog.setHeaderText("Enter quantity for " + item.product.getName());
+        dialog.setContentText("Quantity:");
+
+        // Style the dialog
+        DialogPane dialogPane = dialog.getDialogPane();
+        try {
+            dialogPane.getStylesheets().add(getClass().getResource("/css/app.css").toExternalForm());
+            dialogPane.getStyleClass().add("custom-alert");
+        } catch (Exception e) {
+            // ignore
+        }
+
+        java.util.Optional<String> result = dialog.showAndWait();
+        if (result.isPresent()) {
+            String input = result.get();
+
+            // 1. Check for letters/symbols (allow digits and one dot)
+            if (!input.matches("\\d*\\.?\\d+")) {
+                showAlert(Alert.AlertType.ERROR, "Invalid Input", "Please enter a valid positive number.");
+                return;
+            }
+
+            try {
+                double qty = Double.parseDouble(input);
+
+                // 2. Check for negative or zero
+                if (qty <= 0) {
+                    showAlert(Alert.AlertType.ERROR, "Invalid Input", "Quantity must be greater than 0.");
+                    return;
+                }
+
+                // 3. Check integer constraint for Piece items
+                if (item.product.isPiece()) {
+                    if (qty % 1 != 0) {
+                        showAlert(Alert.AlertType.ERROR, "Invalid Input",
+                                "This item is sold by piece. Please enter a whole number.");
+                        return;
+                    }
+                }
+
+                // 4. Check Stock
+                int productId = item.product.getId();
+                double maxStock = localStockMap.getOrDefault(productId, item.product.getStock());
+
+                if (qty > maxStock) {
+                    showAlert(Alert.AlertType.ERROR, "Stock Error", "Not enough stock available! Max: " + maxStock);
+                    return;
+                }
+
+                // Apply change
+                item.quantity = qty;
+                refreshProductCards();
+                if (cartView.isVisible()) {
+                    updateCartView();
+                }
+
+            } catch (NumberFormatException e) {
+                showAlert(Alert.AlertType.ERROR, "Invalid Input", "Please enter a valid number.");
+            }
+        }
     }
 
     private CartItem findInCart(Product product) {
@@ -136,29 +284,45 @@ public class CustomerController {
         return null;
     }
 
-    private void handleAddToCart(Product product) {
-        if (product.getStock() < 1) { // Basic check, better logic needed for strict stock
-            showAlert(Alert.AlertType.ERROR, "Stock Error", "Out of stock!");
-            return;
-        }
-        cart.add(new CartItem(product, 1.0));
-        refreshProductCards();
-    }
+    // Local map to track stock without querying DB on every click
+    private final java.util.Map<Integer, Double> localStockMap = new java.util.HashMap<>();
 
     private void handleIncrement(CartItem item) {
         double step = item.product.isPiece() ? 1.0 : 0.25;
         double newQty = item.quantity + step;
 
-        if (newQty > item.product.getStock()) {
-            showAlert(Alert.AlertType.ERROR, "Stock Error", "Not enough stock available.");
+        // Check local stock map
+        int productId = item.product.getId();
+        double maxStock = localStockMap.getOrDefault(productId, item.product.getStock());
+
+        if (newQty > maxStock) {
+            showAlert(Alert.AlertType.ERROR, "Stock Error", "Not enough stock available! Max: " + maxStock);
             return;
         }
 
         item.quantity = newQty;
+        // Optionally update the map if we want to track "remaining" stock vs "total"
+        // stock.
+        // But for validation "newQty > maxStock" is correct if maxStock is the Total DB
+        // stock.
+
         refreshProductCards();
         if (cartView.isVisible()) {
             updateCartView();
         }
+    }
+
+    private void handleAddToCart(Product product) {
+        // Initialize/Update local stock map if not present
+        localStockMap.putIfAbsent(product.getId(), product.getStock());
+        double maxStock = localStockMap.get(product.getId());
+
+        if (maxStock < 1) {
+            showAlert(Alert.AlertType.ERROR, "Stock Error", "Out of stock!");
+            return;
+        }
+        cart.add(new CartItem(product, 1.0));
+        refreshProductCards();
     }
 
     private void handleDecrement(CartItem item) {
