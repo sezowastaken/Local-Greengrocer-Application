@@ -34,7 +34,7 @@ public class LoginController {
 
         try {
             Connection conn = DbAdapter.getConnection();
-            String query = "SELECT role FROM users WHERE username = ? AND password_hash = ?";
+            String query = "SELECT id, role FROM users WHERE username = ? AND password_hash = ?";
             PreparedStatement currentState = conn.prepareStatement(query);
             currentState.setString(1, username);
             currentState.setString(2, password);
@@ -42,10 +42,17 @@ public class LoginController {
 
             if (result.next()) {
                 String role = result.getString("role");
+                int userId = result.getInt("id");
+
                 if ("customer".equalsIgnoreCase(role)) {
                     javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
                             getClass().getResource("/fxml/customer.fxml"));
                     javafx.scene.Parent root = loader.load();
+
+                    // Pass session data
+                    CustomerController controller = loader.getController();
+                    controller.setCustomerSession(userId, username);
+
                     usernameField.getScene().setRoot(root);
                 } else {
                     errorLabel.setText("Login Successful! Welcome, " + role);
