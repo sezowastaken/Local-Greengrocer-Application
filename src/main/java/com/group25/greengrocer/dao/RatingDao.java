@@ -1,0 +1,57 @@
+package com.group25.greengrocer.dao;
+
+import com.group25.greengrocer.model.CarrierRating;
+import com.group25.greengrocer.util.DbAdapter;
+
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+public class RatingDao {
+
+    public List<CarrierRating> getRatingsByCarrierId(int carrierId) {
+        List<CarrierRating> ratings = new ArrayList<>();
+        String query = "SELECT * FROM carrier_ratings WHERE carrier_id = ? ORDER BY created_at DESC";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+
+            stmt.setInt(1, carrierId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    ratings.add(new CarrierRating(
+                            rs.getInt("id"),
+                            rs.getInt("order_id"),
+                            rs.getInt("customer_id"),
+                            rs.getInt("carrier_id"),
+                            rs.getInt("rating"),
+                            rs.getString("comment"),
+                            rs.getTimestamp("created_at")));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return ratings;
+    }
+
+    // Calculate average rating
+    public double getAverageRating(int carrierId) {
+        String query = "SELECT AVG(rating) as avg_rating FROM carrier_ratings WHERE carrier_id = ?";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, carrierId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getDouble("avg_rating");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0.0;
+    }
+}
