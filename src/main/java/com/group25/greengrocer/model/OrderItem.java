@@ -11,6 +11,7 @@ public class OrderItem {
 
     // Additional fields for UI display (optional but useful)
     private Product product;
+    private String productName; // For displaying product name without full Product object
 
     public OrderItem(long id, long orderId, long productId, UnitType unit, double quantity, double unitPriceSnapshot,
             double lineTotal) {
@@ -85,5 +86,31 @@ public class OrderItem {
 
     public void setProduct(Product product) {
         this.product = product;
+    }
+
+    public String getProductName() {
+        return productName != null ? productName : "";
+    }
+
+    public void setProductName(String productName) {
+        this.productName = productName;
+    }
+
+    // Formatted getters for UI display
+    public String getFormattedQuantity() {
+        // Format based on unit: KG = 3 decimals, PCS = 0 decimals
+        if (unit == UnitType.PCS) {
+            return String.format("%.0f", quantity);
+        } else {
+            return String.format("%.3f", quantity);
+        }
+    }
+
+    public String getFormattedUnitPrice() {
+        return String.format("$%.2f", unitPriceSnapshot);
+    }
+
+    public String getFormattedLineTotal() {
+        return String.format("$%.2f", lineTotal);
     }
 }
