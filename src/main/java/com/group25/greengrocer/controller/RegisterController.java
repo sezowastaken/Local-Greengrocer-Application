@@ -1,6 +1,7 @@
 package com.group25.greengrocer.controller;
 
 import com.group25.greengrocer.util.DbAdapter;
+// import com.group25.greengrocer.util.SecurityUtil; // Removed
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -51,7 +52,7 @@ public class RegisterController {
             String query = "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)";
             PreparedStatement stmt = conn.prepareStatement(query);
             stmt.setString(1, username);
-            stmt.setString(2, password); // In real app, hash this!
+            stmt.setString(2, hashPassword(password)); // Hash this!
             stmt.setString(3, role);
 
             stmt.executeUpdate();
@@ -67,6 +68,25 @@ public class RegisterController {
             } else {
                 setMessage("Database error during registration.", true);
             }
+        }
+    }
+
+    private String hashPassword(String password) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] encodedhash = digest.digest(password.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder(2 * encodedhash.length);
+            for (byte b : encodedhash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1) {
+                    hexString.append('0');
+                }
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            return null;
         }
     }
 

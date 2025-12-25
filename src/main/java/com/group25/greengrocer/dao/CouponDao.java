@@ -7,6 +7,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -27,8 +29,9 @@ public class CouponDao {
                         rs.getString("discount_type"),
                         rs.getDouble("discount_value"),
                         rs.getDouble("min_order_total"),
-                        rs.getTimestamp("valid_from"),
-                        rs.getTimestamp("valid_until"),
+                        rs.getTimestamp("valid_from") != null ? rs.getTimestamp("valid_from").toLocalDateTime() : null,
+                        rs.getTimestamp("valid_until") != null ? rs.getTimestamp("valid_until").toLocalDateTime()
+                                : null,
                         rs.getBoolean("is_active")));
             }
         } catch (SQLException e) {
@@ -46,8 +49,10 @@ public class CouponDao {
             stmt.setString(2, coupon.getDiscountType());
             stmt.setDouble(3, coupon.getDiscountValue());
             stmt.setDouble(4, coupon.getMinOrderTotal());
-            stmt.setTimestamp(5, coupon.getValidFrom());
-            stmt.setTimestamp(6, coupon.getValidUntil());
+            stmt.setTimestamp(5,
+                    coupon.getValidFrom() != null ? java.sql.Timestamp.valueOf(coupon.getValidFrom()) : null);
+            stmt.setTimestamp(6,
+                    coupon.getValidUntil() != null ? java.sql.Timestamp.valueOf(coupon.getValidUntil()) : null);
             stmt.setBoolean(7, coupon.isActive());
 
             stmt.executeUpdate();
@@ -56,11 +61,11 @@ public class CouponDao {
         }
     }
 
-    public void deleteCoupon(int id) {
+    public void deleteCoupon(long id) {
         String query = "DELETE FROM coupons WHERE id = ?";
         try (Connection conn = DbAdapter.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
-            stmt.setInt(1, id);
+            stmt.setLong(1, id);
             stmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -68,15 +73,50 @@ public class CouponDao {
     }
 
     // Toggle active status
-    public void toggleActive(int id, boolean isActive) {
+
+    public void toggleActive(long id, boolean isActive) {
         String query = "UPDATE coupons SET is_active = ? WHERE id = ?";
         try (Connection conn = DbAdapter.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
             stmt.setBoolean(1, isActive);
-            stmt.setInt(2, id);
+            stmt.setLong(2, id);
             stmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    public Coupon findByCode(String code) throws SQLException {
+        String sql = "SELECT * FROM coupons WHERE code = ? AND is_active = 1";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, code);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    LocalDateTime validFrom = null;
+                    Timestamp validFromTs = rs.getTimestamp("valid_from");
+                    if (validFromTs != null)
+                        validFrom = validFromTs.toLocalDateTime();
+
+                    LocalDateTime validUntil = null;
+                    Timestamp validUntilTs = rs.getTimestamp("valid_until");
+                    if (validUntilTs != null)
+                        validUntil = validUntilTs.toLocalDateTime();
+
+                    return new Coupon(
+                            rs.getLong("id"),
+                            rs.getString("code"),
+                            rs.getString("discount_type"),
+                            rs.getDouble("discount_value"),
+                            rs.getDouble("min_order_total"),
+                            validFrom,
+                            validUntil,
+                            rs.getBoolean("is_active"));
+                }
+            }
+        }
+        return null;
     }
 }

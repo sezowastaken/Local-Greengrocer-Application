@@ -228,14 +228,14 @@ public class OwnerController {
                 return;
             }
 
-            java.sql.Timestamp validUntil = null;
+            java.time.LocalDateTime validUntil = null;
             if (dpValidUntil.getValue() != null) {
-                validUntil = java.sql.Timestamp.valueOf(dpValidUntil.getValue().atStartOfDay());
+                validUntil = dpValidUntil.getValue().atStartOfDay();
             }
 
             com.group25.greengrocer.model.Coupon coupon = new com.group25.greengrocer.model.Coupon(
                     0, code, type, value, minOrder,
-                    new java.sql.Timestamp(System.currentTimeMillis()), // Valid from now
+                    java.time.LocalDateTime.now(), // Valid from now
                     validUntil,
                     true);
 

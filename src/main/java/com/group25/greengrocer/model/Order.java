@@ -1,64 +1,181 @@
 package com.group25.greengrocer.model;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Order {
-    private int id;
-    private int customerId;
-    private int carrierId; // Can be 0 if not assigned/nullable
-    private Timestamp orderTime;
-    private Timestamp deliveryTime;
-    private String status; // PLACED, ASSIGNED, DELIVERED, CANCELLED
-    private double totalAmount;
+    private long id;
+    private long customerId;
+    private Long carrierId; // Nullable
+    private OrderStatus status; // CART, PLACED, ASSIGNED, DELIVERED, CANCELLED
+    private LocalDateTime orderTime;
+    private LocalDateTime requestedDeliveryTime;
+    private LocalDateTime deliveredTime;
+    private LocalDateTime cancelledTime;
+    private double vatRate;
+    private double subtotal;
+    private double discountTotal;
+    private double vatTotal;
+    private double total;
+    private Long appliedCouponId; // Nullable
+    private double loyaltyDiscountRate;
+    private String note;
 
-    public Order(int id, int customerId, int carrierId, Timestamp orderTime, Timestamp deliveryTime, String status,
-            double totalAmount) {
+    // Helper list for items
+    private List<OrderItem> items = new ArrayList<>();
+
+    public Order() {
+        // Default constructor
+    }
+
+    public Order(long id, long customerId, Long carrierId, OrderStatus status, LocalDateTime orderTime,
+            double total) {
         this.id = id;
         this.customerId = customerId;
         this.carrierId = carrierId;
-        this.orderTime = orderTime;
-        this.deliveryTime = deliveryTime;
         this.status = status;
-        this.totalAmount = totalAmount;
+        this.orderTime = orderTime;
+        this.total = total;
     }
 
-    public int getId() {
+    public long getId() {
         return id;
     }
 
-    public int getCustomerId() {
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public long getCustomerId() {
         return customerId;
     }
 
-    public int getCarrierId() {
+    public void setCustomerId(long customerId) {
+        this.customerId = customerId;
+    }
+
+    public Long getCarrierId() {
         return carrierId;
     }
 
-    public Timestamp getOrderTime() {
-        return orderTime;
-    }
-
-    public Timestamp getDeliveryTime() {
-        return deliveryTime;
-    }
-
-    public String getStatus() {
-        return status;
-    }
-
-    public double getTotalAmount() {
-        return totalAmount;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
-    public void setCarrierId(int carrierId) {
+    public void setCarrierId(Long carrierId) {
         this.carrierId = carrierId;
     }
 
-    public void setDeliveryTime(Timestamp deliveryTime) {
-        this.deliveryTime = deliveryTime;
+    public OrderStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(OrderStatus status) {
+        this.status = status;
+    }
+
+    public LocalDateTime getOrderTime() {
+        return orderTime;
+    }
+
+    public void setOrderTime(LocalDateTime orderTime) {
+        this.orderTime = orderTime;
+    }
+
+    public LocalDateTime getRequestedDeliveryTime() {
+        return requestedDeliveryTime;
+    }
+
+    public void setRequestedDeliveryTime(LocalDateTime requestedDeliveryTime) {
+        this.requestedDeliveryTime = requestedDeliveryTime;
+    }
+
+    public LocalDateTime getDeliveredTime() {
+        return deliveredTime;
+    }
+
+    public void setDeliveredTime(LocalDateTime deliveredTime) {
+        this.deliveredTime = deliveredTime;
+    }
+
+    public LocalDateTime getCancelledTime() {
+        return cancelledTime;
+    }
+
+    public void setCancelledTime(LocalDateTime cancelledTime) {
+        this.cancelledTime = cancelledTime;
+    }
+
+    public double getVatRate() {
+        return vatRate;
+    }
+
+    public void setVatRate(double vatRate) {
+        this.vatRate = vatRate;
+    }
+
+    public double getSubtotal() {
+        return subtotal;
+    }
+
+    public void setSubtotal(double subtotal) {
+        this.subtotal = subtotal;
+    }
+
+    public double getDiscountTotal() {
+        return discountTotal;
+    }
+
+    public void setDiscountTotal(double discountTotal) {
+        this.discountTotal = discountTotal;
+    }
+
+    public double getVatTotal() {
+        return vatTotal;
+    }
+
+    public void setVatTotal(double vatTotal) {
+        this.vatTotal = vatTotal;
+    }
+
+    public double getTotal() {
+        return total;
+    }
+
+    public void setTotal(double total) {
+        this.total = total;
+    }
+
+    public Long getAppliedCouponId() {
+        return appliedCouponId;
+    }
+
+    public void setAppliedCouponId(Long appliedCouponId) {
+        this.appliedCouponId = appliedCouponId;
+    }
+
+    public double getLoyaltyDiscountRate() {
+        return loyaltyDiscountRate;
+    }
+
+    public void setLoyaltyDiscountRate(double loyaltyDiscountRate) {
+        this.loyaltyDiscountRate = loyaltyDiscountRate;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
+    }
+
+    public List<OrderItem> getItems() {
+        return items;
+    }
+
+    public void setItems(List<OrderItem> items) {
+        this.items = items;
+    }
+
+    public void addItem(OrderItem item) {
+        this.items.add(item);
     }
 }

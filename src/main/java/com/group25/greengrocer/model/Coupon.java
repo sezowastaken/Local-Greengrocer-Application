@@ -1,19 +1,19 @@
 package com.group25.greengrocer.model;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 public class Coupon {
-    private int id;
+    private long id;
     private String code;
-    private String discountType; // PERCENT or AMOUNT
+    private String discountType; // 'PERCENT' or 'AMOUNT'
     private double discountValue;
     private double minOrderTotal;
-    private Timestamp validFrom;
-    private Timestamp validUntil;
+    private LocalDateTime validFrom;
+    private LocalDateTime validUntil;
     private boolean isActive;
 
-    public Coupon(int id, String code, String discountType, double discountValue, double minOrderTotal,
-            Timestamp validFrom, Timestamp validUntil, boolean isActive) {
+    public Coupon(long id, String code, String discountType, double discountValue, double minOrderTotal,
+            LocalDateTime validFrom, LocalDateTime validUntil, boolean isActive) {
         this.id = id;
         this.code = code;
         this.discountType = discountType;
@@ -24,11 +24,11 @@ public class Coupon {
         this.isActive = isActive;
     }
 
-    public int getId() {
+    public long getId() {
         return id;
     }
 
-    public void setId(int id) {
+    public void setId(long id) {
         this.id = id;
     }
 
@@ -64,19 +64,19 @@ public class Coupon {
         this.minOrderTotal = minOrderTotal;
     }
 
-    public Timestamp getValidFrom() {
+    public LocalDateTime getValidFrom() {
         return validFrom;
     }
 
-    public void setValidFrom(Timestamp validFrom) {
+    public void setValidFrom(LocalDateTime validFrom) {
         this.validFrom = validFrom;
     }
 
-    public Timestamp getValidUntil() {
+    public LocalDateTime getValidUntil() {
         return validUntil;
     }
 
-    public void setValidUntil(Timestamp validUntil) {
+    public void setValidUntil(LocalDateTime validUntil) {
         this.validUntil = validUntil;
     }
 

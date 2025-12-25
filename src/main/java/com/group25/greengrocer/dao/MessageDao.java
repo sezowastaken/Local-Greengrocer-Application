@@ -17,7 +17,7 @@ public class MessageDao {
         // Joining with users to get sender name if possible, or just raw fetch
         String query = "SELECT m.*, u.username as sender_name FROM messages m " +
                 "JOIN users u ON m.sender_id = u.id " +
-                "ORDER BY m.sent_time DESC";
+                "ORDER BY m.created_at DESC";
 
         try (Connection conn = DbAdapter.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query);
@@ -28,10 +28,10 @@ public class MessageDao {
                         rs.getInt("id"),
                         rs.getInt("sender_id"),
                         rs.getString("sender_name"),
-                        rs.getString("content"),
-                        rs.getTimestamp("sent_time"),
-                        rs.getString("reply"),
-                        rs.getTimestamp("reply_time")));
+                        rs.getString("body"), // Column is 'body' in DB
+                        rs.getTimestamp("created_at"), // Column is 'created_at' in DB
+                        null, // 'reply' column does not exist in DB
+                        null)); // 'reply_time' column does not exist in DB
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -40,16 +40,21 @@ public class MessageDao {
     }
 
     public void replyToMessage(int messageId, String reply) {
-        String query = "UPDATE messages SET reply = ?, reply_time = NOW() WHERE id = ?";
-
-        try (Connection conn = DbAdapter.getConnection();
-                PreparedStatement stmt = conn.prepareStatement(query)) {
-
-            stmt.setString(1, reply);
-            stmt.setInt(2, messageId);
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        // String query = "UPDATE messages SET reply = ?, reply_time = NOW() WHERE id =
+        // ?";
+        // Columns reply and reply_time do not exist. Logic needs to be revised (e.g.
+        // creating new message).
+        System.err.println("replyToMessage not implemented: Schema missing reply columns.");
+        /*
+         * try (Connection conn = DbAdapter.getConnection();
+         * PreparedStatement stmt = conn.prepareStatement(query)) {
+         * 
+         * stmt.setString(1, reply);
+         * stmt.setInt(2, messageId);
+         * stmt.executeUpdate();
+         * } catch (SQLException e) {
+         * e.printStackTrace();
+         * }
+         */
     }
 }

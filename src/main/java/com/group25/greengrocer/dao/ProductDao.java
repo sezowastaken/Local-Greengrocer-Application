@@ -127,8 +127,24 @@ public class ProductDao {
 
             stmt.setInt(1, productId);
             stmt.executeUpdate();
+            stmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
+        }
+    }
+
+    // Transactional reduceStock method
+    public boolean reduceStock(long productId, double quantity, Connection conn) throws SQLException {
+        String sql = "UPDATE products SET stock_qty = stock_qty - ? WHERE id = ? AND stock_qty >= ?";
+
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setDouble(1, quantity);
+            stmt.setLong(2, productId);
+            stmt.setDouble(3, quantity); // Ensure check constraint inside query
+
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;
         }
     }
 }
