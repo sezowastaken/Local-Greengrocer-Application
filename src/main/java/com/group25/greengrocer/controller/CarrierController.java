@@ -458,8 +458,19 @@ public class CarrierController {
 
     @FXML
     private void handleShowProfile() {
-        // Profile page removed from project skeleton. Navigate back or inform user.
-        showInfo("Profile page is not available in this build.");
+        try {
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
+                    getClass().getResource("/fxml/profile.fxml"));
+            javafx.scene.Parent root = loader.load();
+
+            ProfileController profileController = loader.getController();
+            profileController.setUserSession(carrierId, carrierUsername, "carrier");
+
+            welcomeText.getScene().setRoot(root);
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
+            showError("Failed to load profile page: " + e.getMessage());
+        }
     }
     /*
      * @FXML

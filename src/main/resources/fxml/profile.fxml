@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Priority?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.text.Text?>
+
+<VBox xmlns:fx="http://javafx.com/fxml" fx:controller="com.group25.greengrocer.controller.ProfileController"
+      spacing="0" style="-fx-background-color: #f4f6f9;" alignment="TOP_CENTER" 
+      minWidth="600" minHeight="500" prefWidth="900" prefHeight="650">
+
+    <!-- Header (Fixed) -->
+    <HBox styleClass="carrier-header" alignment="CENTER_LEFT" spacing="15" minHeight="60">
+        <padding>
+            <Insets top="15" right="25" bottom="15" left="25"/>
+        </padding>
+        <Text fx:id="pageTitleText" text="Profile" styleClass="welcome-text"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button text="Back" onAction="#handleBack" styleClass="button-secondary" minWidth="80"/>
+    </HBox>
+
+    <!-- Scrollable Content Area -->
+    <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background-color: transparent; -fx-background: #f4f6f9;">
+        <VBox alignment="TOP_CENTER" spacing="20" style="-fx-background-color: transparent;">
+            <padding>
+                <Insets top="30" right="20" bottom="30" left="20"/>
+            </padding>
+            
+            <!-- Profile Content Card -->
+            <VBox spacing="25" 
+                  style="-fx-background-color: white; -fx-background-radius: 10px; -fx-padding: 40px; -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.08), 10, 0, 0, 3);"
+                  minWidth="500" maxWidth="700">
+                <VBox.margin>
+                    <Insets left="10" right="10"/>
+                </VBox.margin>
+                
+                <!-- User Info Section -->
+                <VBox spacing="18">
+                    <Text text="Account Information" style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-fill: #2c3e50;"/>
+                    
+                    <!-- Username and Role in a Grid -->
+                    <HBox spacing="15">
+                        <VBox spacing="8" HBox.hgrow="ALWAYS">
+                            <Label text="Username" style="-fx-font-weight: bold; -fx-text-fill: #555; -fx-font-size: 13px;"/>
+                            <TextField fx:id="usernameField" editable="false" 
+                                     style="-fx-background-color: #f8f9fa; -fx-border-color: #e0e0e0; -fx-border-radius: 5px; -fx-background-radius: 5px;" 
+                                     promptText="Username" minHeight="38"/>
+                        </VBox>
+                        
+                        <VBox spacing="8" HBox.hgrow="ALWAYS">
+                            <Label text="Role" style="-fx-font-weight: bold; -fx-text-fill: #555; -fx-font-size: 13px;"/>
+                            <TextField fx:id="roleField" editable="false" 
+                                     style="-fx-background-color: #f8f9fa; -fx-border-color: #e0e0e0; -fx-border-radius: 5px; -fx-background-radius: 5px;" 
+                                     promptText="Role" minHeight="38"/>
+                        </VBox>
+                    </HBox>
+                </VBox>
+
+                <!-- Separator -->
+                <Region minHeight="1" maxHeight="1" style="-fx-background-color: #e8ecef;"/>
+
+                <!-- Editable Profile Section -->
+                <VBox spacing="18">
+                    <Text text="Profile Information" style="-fx-font-size: 20px; -fx-font-weight: bold; -fx-fill: #2c3e50;"/>
+                    
+                    <!-- Full Name and Phone in Grid -->
+                    <HBox spacing="15">
+                        <!-- Full Name (Shorter) -->
+                        <VBox spacing="8" HBox.hgrow="ALWAYS" prefWidth="250">
+                            <Label text="Full Name *" style="-fx-font-weight: bold; -fx-text-fill: #555; -fx-font-size: 13px;"/>
+                            <TextField fx:id="fullNameField" promptText="Enter your full name" 
+                                     styleClass="text-field" minHeight="38" maxWidth="250"/>
+                        </VBox>
+                        
+                        <!-- Phone with prefix (Shorter) -->
+                        <VBox spacing="8" HBox.hgrow="ALWAYS" prefWidth="200">
+                            <Label text="Phone Number *" style="-fx-font-weight: bold; -fx-text-fill: #555; -fx-font-size: 13px;"/>
+                            <HBox spacing="5" alignment="CENTER_LEFT">
+                                <Label text="+(90)" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: #666; -fx-padding: 8 0;"/>
+                                <TextField fx:id="phoneField" promptText="5XX XXX XX XX" 
+                                         styleClass="text-field" minHeight="38" maxWidth="150" prefWidth="150"/>
+                            </HBox>
+                        </VBox>
+                    </HBox>
+                    
+                    <!-- Address Line (Larger TextArea) -->
+                    <VBox spacing="8">
+                        <Label text="Address *" style="-fx-font-weight: bold; -fx-text-fill: #555; -fx-font-size: 13px;"/>
+                        <TextArea fx:id="addressLineField" promptText="Enter your full address (street, building, apartment, etc.)" 
+                                 wrapText="true" prefRowCount="3" minHeight="80" maxHeight="120"
+                                 style="-fx-padding: 8px;"/>
+                    </VBox>
+                    
+                    <!-- City ComboBox (Dropdown) -->
+                    <VBox spacing="8">
+                        <Label text="City *" style="-fx-font-weight: bold; -fx-text-fill: #555; -fx-font-size: 13px;"/>
+                        <ComboBox fx:id="cityComboBox" promptText="Select your city" 
+                                styleClass="combo-box" minHeight="38" prefWidth="300" maxWidth="300"/>
+                    </VBox>
+                </VBox>
+
+                <!-- Status Message -->
+                <Label fx:id="statusLabel" wrapText="true" maxWidth="Infinity"
+                     style="-fx-font-size: 14px; -fx-padding: 12px 15px; -fx-background-radius: 6px;" 
+                     visible="false" managed="false"/>
+
+                <!-- Action Buttons -->
+                <HBox spacing="15" alignment="CENTER" style="-fx-padding: 10 0 0 0;">
+                    <Button text="Update Profile" onAction="#handleUpdateProfile" 
+                          styleClass="button-primary" 
+                          minWidth="140" minHeight="40"
+                          style="-fx-font-size: 14px; -fx-font-weight: bold;"/>
+                    <Button text="Cancel" onAction="#handleBack" 
+                          styleClass="button-secondary" 
+                          minWidth="140" minHeight="40"
+                          style="-fx-font-size: 14px;"/>
+                </HBox>
+            </VBox>
+        </VBox>
+    </ScrollPane>
+</VBox>

@@ -50,9 +50,11 @@ public class CustomerController {
     }
 
     private long customerId;
+    private String customerUsername;
 
     public void setCustomerSession(long id, String name) {
         this.customerId = id;
+        this.customerUsername = name;
         welcomeText.setText("Welcome, " + name);
     }
 
@@ -404,6 +406,22 @@ public class CustomerController {
         }
 
         cartTotalLabel.setText(String.format("$%.2f", total));
+    }
+
+    @FXML
+    private void handleShowProfile() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/profile.fxml"));
+            Parent root = loader.load();
+
+            ProfileController profileController = loader.getController();
+            profileController.setUserSession(customerId, customerUsername, "customer");
+
+            welcomeText.getScene().setRoot(root);
+        } catch (IOException e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Error", "Failed to load profile page: " + e.getMessage());
+        }
     }
 
     @FXML

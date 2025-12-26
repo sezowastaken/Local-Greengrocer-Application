@@ -122,6 +122,10 @@ public class OwnerController {
     @FXML
     private TableColumn<com.group25.greengrocer.model.Coupon, Boolean> colCouponActive;
 
+    // Session data for owner
+    private long ownerId;
+    private String ownerUsername;
+
     @FXML
     private TextField txtCouponCode;
     @FXML
@@ -157,6 +161,40 @@ public class OwnerController {
         comboDiscountType.setItems(FXCollections.observableArrayList("PERCENT", "AMOUNT"));
 
         loadAllData();
+    }
+
+    /**
+     * Set owner session data
+     */
+    public void setOwnerSession(long id, String username) {
+        this.ownerId = id;
+        this.ownerUsername = username;
+    }
+
+    @FXML
+    private void handleShowProfile() {
+        try {
+            // Get userId from Session if not already set
+            if (ownerId == 0) {
+                User currentUser = com.group25.greengrocer.util.Session.getCurrentUser();
+                if (currentUser != null) {
+                    this.ownerId = currentUser.getId();
+                    this.ownerUsername = currentUser.getUsername();
+                }
+            }
+
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
+                    getClass().getResource("/fxml/profile.fxml"));
+            javafx.scene.Parent root = loader.load();
+
+            ProfileController profileController = loader.getController();
+            profileController.setUserSession(ownerId, ownerUsername, "owner");
+
+            productTable.getScene().setRoot(root);
+        } catch (java.io.IOException e) {
+            e.printStackTrace();
+            showAlert("Error", "Failed to load profile page: " + e.getMessage());
+        }
     }
 
     @FXML

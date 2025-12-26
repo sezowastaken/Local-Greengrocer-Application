@@ -45,7 +45,7 @@ public class LoginController {
         String query = "SELECT id, role, password_hash FROM users WHERE username = ?";
 
         try (Connection conn = DbAdapter.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+                PreparedStatement stmt = conn.prepareStatement(query)) {
 
             stmt.setString(1, username);
 
@@ -67,8 +67,7 @@ public class LoginController {
                 System.out.println("DEBUG: Stored Hash: " + storedPasswordHash);
                 System.out.println("DEBUG: Input Hash: " + inputPasswordHash);
 
-                boolean passwordMatches =
-                        storedPasswordHash != null &&
+                boolean passwordMatches = storedPasswordHash != null &&
                         (storedPasswordHash.equals(inputPasswordHash)
                                 || storedPasswordHash.equals(password));
 
@@ -83,7 +82,8 @@ public class LoginController {
                 if ("carrier".equalsIgnoreCase(role)) {
                     currentUser = new Carrier(userId, username, password);
                 } else {
-                    currentUser = new User(userId, username, password, role) {};
+                    currentUser = new User(userId, username, password, role) {
+                    };
                 }
 
                 Session.setCurrentUser(currentUser);
@@ -116,6 +116,9 @@ public class LoginController {
                     FXMLLoader loader = new FXMLLoader(
                             getClass().getResource("/fxml/owner.fxml"));
                     root = loader.load();
+
+                    OwnerController controller = loader.getController();
+                    controller.setOwnerSession(userId, username);
                 }
 
                 if (root != null) {
@@ -137,14 +140,13 @@ public class LoginController {
 
     private String hashPassword(String password) {
         try {
-            java.security.MessageDigest digest =
-                    java.security.MessageDigest.getInstance("SHA-256");
-            byte[] encodedhash =
-                    digest.digest(password.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] encodedhash = digest.digest(password.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             StringBuilder hexString = new StringBuilder();
             for (byte b : encodedhash) {
                 String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
+                if (hex.length() == 1)
+                    hexString.append('0');
                 hexString.append(hex);
             }
             return hexString.toString();
