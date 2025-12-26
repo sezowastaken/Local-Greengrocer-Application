@@ -493,8 +493,9 @@
 .table-view .placeholder .label {
     -fx-text-fill: #bdc3c7;
     -fx-font-size: 16px;
+}
 
-    /* 
+/* 
 ============================================
 OLD CARRIER PANEL STYLES (BACKUP)
 ============================================
