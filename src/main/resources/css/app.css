@@ -798,7 +798,38 @@ OLD CARRIER PANEL STYLES (BACKUP)
 }
 
 .owner-panel-messages {
-    -fx-background-color: #53639F;
+    -fx-background-color: #02030A;
+}
+
+/* ============================================
+   PRODUCT GRID CARD STYLES
+   ============================================ */
+
+.product-grid-card {
+    -fx-background-color: white;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.1), 5, 0, 0, 0);
+    -fx-background-radius: 10px;
+    -fx-border-color: #ddd;
+    -fx-border-radius: 10px;
+    -fx-border-width: 1px;
+    -fx-cursor: hand;
+    -fx-transition: all 0.2s ease;
+}
+
+.product-grid-card:hover {
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.2), 8, 0, 0, 2);
+    -fx-scale-x: 1.02;
+    -fx-scale-y: 1.02;
+    -fx-border-color: #2e7d32;
+}
+
+.product-grid-card:selected {
+    -fx-background-color: #e8f5e9;
+    -fx-border-color: #2e7d32;
+    -fx-border-width: 2px;
+}
+
+-fx-background-color: #53639F;
 }
 
 .owner-panel-reports {
@@ -967,4 +998,108 @@ OLD CARRIER PANEL STYLES (BACKUP)
 .btn-profile-remove:hover {
     -fx-text-fill: #c0392b;
     -fx-effect: dropshadow(three-pass-box, rgba(231, 76, 60, 0.1), 5, 0, 0, 0);
+
+}
+
+/* ============================================
+   PAGINATION STYLES
+   ============================================ */
+.pagination .page-information {
+    -fx-padding: 0;
+    -fx-font-size: 12px;
+    -fx-text-fill: #666;
+}
+
+.pagination .toggle-button,
+.pagination .button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: #666;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-effect: null;
+}
+
+.pagination .toggle-button:hover,
+.pagination .button:hover {
+    -fx-background-color: #ecf0f1;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+}
+
+.pagination .toggle-button:selected {
+    -fx-background-color: #2e7d32;
+    -fx-text-fill: white;
+    -fx-background-radius: 4px;
+}
+
+.pagination .control-box {
+    -fx-padding: 10px 0 0 0;
+    -fx-alignment: center;
+}
+
+/* ============================================
+   FILTER BUTTON STYLES
+   ============================================ */
+.filter-btn {
+    -fx-background-color: transparent;
+    -fx-text-fill: #666;
+    -fx-font-weight: bold;
+    -fx-padding: 8px 15px;
+    -fx-background-radius: 20px;
+    -fx-cursor: hand;
+    -fx-border-color: transparent;
+    -fx-border-width: 0;
+}
+
+.filter-btn:hover {
+    -fx-background-color: #e0e0e0;
+    -fx-text-fill: #333;
+}
+
+.filter-btn-active {
+    -fx-background-color: #2e7d32;
+    -fx-text-fill: white;
+}
+
+/* ============================================
+   PAGINATION STYLES
+   ============================================ */
+.pagination .page-information {
+    -fx-padding: 0;
+    -fx-font-size: 12px;
+    -fx-text-fill: #666;
+}
+
+.pagination .toggle-button,
+.pagination .button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-text-fill: #666;
+    -fx-font-weight: bold;
+    -fx-cursor: hand;
+    -fx-effect: null;
+}
+
+.pagination .toggle-button:hover,
+.pagination .button:hover {
+    -fx-background-color: #ecf0f1;
+    -fx-border-radius: 4px;
+    -fx-background-radius: 4px;
+}
+
+.pagination .toggle-button:selected {
+    -fx-background-color: #2e7d32;
+    -fx-text-fill: white;
+    -fx-background-radius: 4px;
+}
+
+.pagination .control-box {
+    -fx-padding: 10px 0 0 0;
+    -fx-alignment: center;
+}
+
+.filter-btn-active:hover {
+    -fx-background-color: #1b5e20;
+    -fx-text-fill: white;
 }

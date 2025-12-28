@@ -35,6 +35,16 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.nio.file.Files;
 import java.util.Map;
+import java.util.List;
+import java.util.ArrayList;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.VBox;
+import javafx.scene.layout.HBox;
+import javafx.scene.control.Pagination;
+import javafx.scene.control.ScrollPane;
+import javafx.geometry.Pos;
+import javafx.scene.layout.ColumnConstraints;
+import javafx.scene.layout.Priority;
 
 public class OwnerController {
 
@@ -48,17 +58,24 @@ public class OwnerController {
 
     // --- Product Tab ---
     @FXML
-    private TableView<Product> productTable;
+    private Pagination paginationProducts;
     @FXML
-    private TableColumn<Product, String> colProdName;
+    private ImageView imgProdPreview;
+
+    // Filters
     @FXML
-    private TableColumn<Product, Double> colProdPrice;
+    private Button btnFilterAll;
     @FXML
-    private TableColumn<Product, Double> colProdStock;
+    private Button btnFilterFruit;
     @FXML
-    private TableColumn<Product, Double> colProdThreshold;
-    @FXML
-    private TableColumn<Product, String> colProdCategory;
+    private Button btnFilterVeg;
+
+    private String currentCategoryFilter = "ALL";
+    private java.util.List<Product> allProducts = new java.util.ArrayList<>();
+    private java.util.List<Product> filteredProducts = new java.util.ArrayList<>();
+    private Product selectedProduct;
+    private int itemsPerPage = 5; // Default start value
+    private static final double ROW_HEIGHT = 90.0; // Approx height of a row including padding
 
     @FXML
     private TextField txtProdName;
@@ -240,19 +257,88 @@ public class OwnerController {
     private java.util.Map<String, Integer> categoryMap; // Store category name-to-id mapping
 
     @FXML
+    private VBox notificationContainer;
+
+    private void showNotification(String title, String message, String type) {
+        if (notificationContainer == null)
+            return;
+
+        VBox notification = new VBox(5);
+        notification.getStyleClass().addAll("notification-item", "notification-" + type);
+
+        Label titleLbl = new Label(title);
+        titleLbl.getStyleClass().add("label"); // Applies specific style from CSS
+
+        Label msgLbl = new Label(message);
+        msgLbl.getStyleClass().add("notification-message");
+        msgLbl.setWrapText(true);
+
+        notification.getChildren().addAll(titleLbl, msgLbl);
+
+        // Animation: Slide in from right and fade in
+        notification.setTranslateX(300);
+        notification.setOpacity(0);
+        notificationContainer.getChildren().add(notification);
+
+        javafx.animation.ParallelTransition showAnim = new javafx.animation.ParallelTransition();
+        javafx.animation.TranslateTransition slideIn = new javafx.animation.TranslateTransition(
+                javafx.util.Duration.millis(300), notification);
+        slideIn.setToX(0);
+        javafx.animation.FadeTransition fadeIn = new javafx.animation.FadeTransition(javafx.util.Duration.millis(300),
+                notification);
+        fadeIn.setToValue(1.0);
+        showAnim.getChildren().addAll(slideIn, fadeIn);
+
+        showAnim.play();
+
+        // Auto remove
+        javafx.animation.PauseTransition delay = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(3));
+        delay.setOnFinished(e -> {
+            javafx.animation.ParallelTransition hideAnim = new javafx.animation.ParallelTransition();
+            javafx.animation.FadeTransition fadeOut = new javafx.animation.FadeTransition(
+                    javafx.util.Duration.millis(300), notification);
+            fadeOut.setToValue(0);
+            javafx.animation.TranslateTransition slideOut = new javafx.animation.TranslateTransition(
+                    javafx.util.Duration.millis(300), notification);
+            slideOut.setToX(300);
+            hideAnim.getChildren().addAll(fadeOut, slideOut);
+
+            hideAnim.setOnFinished(ev -> notificationContainer.getChildren().remove(notification));
+            hideAnim.play();
+        });
+        delay.play();
+    }
+
+    @FXML
     public void initialize() {
         // Role Guard: STRICT access control for Owner
         User currentUser = com.group25.greengrocer.util.Session.getCurrentUser();
         if (currentUser == null || !"owner".equalsIgnoreCase(currentUser.getRole())) {
             showAlert("Access Denied", "You do not have permission to view this page.");
             // Close the current stage to prevent unauthorized access
-            if (productTable.getScene() != null && productTable.getScene().getWindow() != null) {
-                ((javafx.stage.Stage) productTable.getScene().getWindow()).close();
+            if (pnlOverview.getScene() != null && pnlOverview.getScene().getWindow() != null) {
+                ((javafx.stage.Stage) pnlOverview.getScene().getWindow()).close();
             }
             return;
         }
 
-        setupProductTable();
+        setupProductPagination();
+
+        // Add listener for dynamic resizing
+        paginationProducts.heightProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null) {
+                // Calculate how many items fit. Subtract approx 50px for header/pagination
+                // controls
+                double availableHeight = newVal.doubleValue() - 60;
+                int newItemsPerPage = Math.max(5, (int) (availableHeight / ROW_HEIGHT));
+
+                if (newItemsPerPage != itemsPerPage) {
+                    itemsPerPage = newItemsPerPage;
+                    // Refresh view with new count
+                    applyFilter();
+                }
+            }
+        });
         setupCarrierTable();
         setupOrderTable();
         setupMessageTable();
@@ -523,7 +609,7 @@ public class OwnerController {
     private void handleLogout() {
         com.group25.greengrocer.util.Session.clear();
         try {
-            javafx.stage.Stage stage = (javafx.stage.Stage) productTable.getScene().getWindow();
+            javafx.stage.Stage stage = (javafx.stage.Stage) pnlOverview.getScene().getWindow();
             javafx.scene.Parent root = javafx.fxml.FXMLLoader.load(getClass().getResource("/fxml/login.fxml"));
             stage.getScene().setRoot(root);
         } catch (java.io.IOException e) {
@@ -633,17 +719,202 @@ public class OwnerController {
 
     // --- Product Logic ---
     // ... existing setupProductTable ...
-    private void setupProductTable() {
-        colProdName.setCellValueFactory(new PropertyValueFactory<>("name"));
-        colProdPrice.setCellValueFactory(new PropertyValueFactory<>("price"));
-        colProdStock.setCellValueFactory(new PropertyValueFactory<>("stock"));
-        colProdThreshold.setCellValueFactory(new PropertyValueFactory<>("threshold"));
-        colProdCategory.setCellValueFactory(new PropertyValueFactory<>("category"));
+    @FXML
+    private void handleFilter(javafx.event.ActionEvent event) {
+        if (event.getSource() == btnFilterAll) {
+            currentCategoryFilter = "ALL";
+        } else if (event.getSource() == btnFilterFruit) {
+            currentCategoryFilter = "Fruit";
+        } else if (event.getSource() == btnFilterVeg) {
+            currentCategoryFilter = "Vegetable";
+        }
+        applyFilter();
     }
 
-    // ... existing loadProducts ...
+    private void applyFilter() {
+        if (allProducts == null)
+            allProducts = new java.util.ArrayList<>();
+
+        if ("ALL".equals(currentCategoryFilter)) {
+            filteredProducts = new java.util.ArrayList<>(allProducts);
+        } else {
+            filteredProducts = new java.util.ArrayList<>();
+            for (Product p : allProducts) {
+                if (p.getCategory() != null && p.getCategory().equalsIgnoreCase(currentCategoryFilter)) {
+                    filteredProducts.add(p);
+                }
+            }
+        }
+
+        // Update Buttons Style
+        updateFilterButtonStyle(btnFilterAll, "ALL");
+        updateFilterButtonStyle(btnFilterFruit, "Fruit");
+        updateFilterButtonStyle(btnFilterVeg, "Vegetable");
+
+        setupProductPagination();
+    }
+
+    private void updateFilterButtonStyle(Button btn, String filterName) {
+        if (btn == null)
+            return;
+        btn.getStyleClass().remove("filter-btn-active");
+        if (currentCategoryFilter.equals(filterName)) {
+            btn.getStyleClass().add("filter-btn-active");
+        }
+    }
+
+    private void setupProductPagination() {
+        if (filteredProducts == null) {
+            if (allProducts != null)
+                filteredProducts = new java.util.ArrayList<>(allProducts);
+            else
+                filteredProducts = new java.util.ArrayList<>();
+        }
+
+        int pageCount = (int) Math.ceil((double) filteredProducts.size() / itemsPerPage);
+        if (pageCount == 0)
+            pageCount = 1;
+
+        // Save current page index to try and restore it if possible (prevent jumping to
+        // 0 unnecessarily)
+        int currentIndex = paginationProducts.getCurrentPageIndex();
+        if (currentIndex >= pageCount) {
+            currentIndex = pageCount - 1;
+        }
+
+        paginationProducts.setPageCount(pageCount);
+        paginationProducts.setCurrentPageIndex(currentIndex);
+        paginationProducts.setPageFactory(this::createProductPage);
+    }
+
+    private javafx.scene.Node createProductPage(int pageIndex) {
+        VBox listContainer = new VBox(10);
+        listContainer.setPadding(new javafx.geometry.Insets(10));
+        listContainer.setAlignment(javafx.geometry.Pos.TOP_CENTER);
+        // Ensure container grows
+        javafx.scene.layout.VBox.setVgrow(listContainer, javafx.scene.layout.Priority.ALWAYS);
+
+        int fromIndex = pageIndex * itemsPerPage;
+        if (fromIndex >= filteredProducts.size()) {
+            return new ScrollPane(listContainer);
+        }
+
+        int toIndex = Math.min(fromIndex + itemsPerPage, filteredProducts.size());
+        List<Product> pageProducts = filteredProducts.subList(fromIndex, toIndex);
+
+        for (Product product : pageProducts) {
+            HBox row = createProductCard(product);
+            listContainer.getChildren().add(row);
+        }
+
+        // Return just the VBox if it fits, or ScrollPane if safety needed (user
+        // requested no scroll, but safety first)
+        // User requested NO scroll bar, and 5 items should fit.
+        // We return the container directly if possible, or wrap in a ScrollPane with
+        // hidden bars if needed.
+        // Let's use VBox directly as root of pagination page.
+        // Wrap in ScrollPane with fitToWidth to ensure responsiveness
+        ScrollPane sp = new ScrollPane(listContainer);
+        sp.setFitToWidth(true);
+        sp.setStyle("-fx-background-color: transparent; -fx-background: transparent; -fx-border-color: transparent;");
+        // Hide vertical scrollbar if content fits (user request), but keep logical
+        // scroll if needed
+        sp.setHbarPolicy(ScrollPane.ScrollBarPolicy.NEVER);
+        sp.setVbarPolicy(ScrollPane.ScrollBarPolicy.AS_NEEDED);
+
+        return sp;
+    }
+
+    private HBox createProductCard(Product product) {
+        HBox row = new HBox(15);
+        row.getStyleClass().add("product-list-row");
+        if (selectedProduct != null && selectedProduct.getId() == product.getId()) {
+            row.setStyle("-fx-border-color: #2e7d32; -fx-background-color: #e8f5e9;");
+        }
+        row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        row.setPadding(new javafx.geometry.Insets(10));
+        row.setPrefHeight(80);
+        row.setMaxHeight(80);
+
+        // Image (Small thumbnail)
+        ImageView img = new ImageView();
+        img.setFitHeight(60);
+        img.setFitWidth(60);
+        img.setPreserveRatio(true);
+        if (product.getProductImage() != null) {
+            img.setImage(product.getProductImage());
+        }
+
+        // Info Section (Name & Category)
+        VBox infoBox = new VBox(5);
+        infoBox.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+        Label nameLbl = new Label(product.getName());
+        nameLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 14px; -fx-text-fill: #333;");
+        Label catLbl = new Label(product.getCategory());
+        catLbl.setStyle("-fx-text-fill: #666; -fx-font-size: 12px;");
+        infoBox.getChildren().addAll(nameLbl, catLbl);
+        javafx.scene.layout.HBox.setHgrow(infoBox, javafx.scene.layout.Priority.ALWAYS);
+
+        // Details Section (Price, Stock)
+        VBox detailsBox = new VBox(5);
+        detailsBox.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+        Label priceLbl = new Label(String.format("$%.2f", product.getPrice()));
+        priceLbl.setStyle("-fx-text-fill: #2e7d32; -fx-font-weight: bold; -fx-font-size: 14px;");
+        Label stockLbl = new Label("Stock: " + product.getStock() + " " + (product.isPiece() ? "Pcs" : "Kg"));
+        stockLbl.setStyle("-fx-font-size: 12px;");
+        Label thresholdLbl = new Label("Threshold: " + product.getThreshold());
+        thresholdLbl.setStyle("-fx-text-fill: #e67e22; -fx-font-size: 11px;");
+
+        detailsBox.getChildren().addAll(priceLbl, stockLbl, thresholdLbl);
+
+        row.getChildren().addAll(img, infoBox, detailsBox);
+
+        row.setOnMouseClicked(e -> handleProductSelect(product));
+
+        return row;
+    }
+
+    private void handleProductSelect(Product product) {
+        this.selectedProduct = product;
+
+        // Populate fields
+        txtProdName.setText(product.getName());
+        txtProdPrice.setText(String.valueOf(product.getPrice()));
+        txtProdStock.setText(String.valueOf(product.getStock()));
+        txtProdThreshold.setText(String.valueOf(product.getThreshold()));
+        chkIsPiece.setSelected(product.isPiece());
+        comboProdCategory.setValue(product.getCategory());
+
+        if (product.getProductImage() != null) {
+            imgProdPreview.setImage(product.getProductImage());
+        } else {
+            imgProdPreview.setImage(null);
+        }
+
+        // Efficiently update styling without resetting page index
+        int currentIndex = paginationProducts.getCurrentPageIndex();
+        paginationProducts.setPageFactory(this::createProductPage);
+        paginationProducts.setCurrentPageIndex(currentIndex);
+    }
+
     private void loadProducts() {
-        productTable.setItems(FXCollections.observableArrayList(productDao.getAllProducts()));
+        loadProducts(0);
+    }
+
+    private void loadProducts(int targetPageIndex) {
+        allProducts = productDao.getAllProducts();
+        applyFilter();
+
+        // Restore page index safely
+        int maxPage = paginationProducts.getPageCount() - 1;
+        if (targetPageIndex > maxPage)
+            targetPageIndex = maxPage;
+        if (targetPageIndex < 0)
+            targetPageIndex = 0;
+
+        paginationProducts.setCurrentPageIndex(targetPageIndex);
+        // Force refresh of the current page view
+        paginationProducts.setPageFactory(this::createProductPage);
     }
 
     // ... existing handleBrowseImage ...
@@ -679,38 +950,46 @@ public class OwnerController {
             }
 
             productDao.addProduct(newProd, catId, fis);
-            loadProducts();
+            productDao.addProduct(newProd, catId, fis);
+            // New product, go to last page or stay on current? Default to first or keep
+            // context?
+            // Usually new product -> reload resets. Let's keep it simple or go to page 0 to
+            // see it?
+            // User concern is mainly about "updating" resetting. For adding, maybe page 0
+            // is fine.
+            loadProducts(0);
             clearProductFields();
+            showNotification("Success", "Product added successfully.", "success");
         } catch (NumberFormatException e) {
-            showAlert("Invalid Input", "Please check number fields.");
+            showNotification("Invalid Input", "Please check number fields.", "error");
         } catch (FileNotFoundException e) {
-            showAlert("File Error", "Image file not found.");
+            showNotification("File Error", "Image file not found.", "error");
         }
     }
 
     // ... existing handleDeleteProduct ...
     @FXML
     private void handleDeleteProduct() {
-        Product selected = productTable.getSelectionModel().getSelectedItem();
-        if (selected != null) {
-            productDao.deleteProduct(selected.getId());
-            loadProducts();
+        if (selectedProduct != null) {
+            int currentPage = paginationProducts.getCurrentPageIndex();
+            productDao.deleteProduct(selectedProduct.getId());
+            selectedProduct = null; // Clear selection
+            clearProductFields();
+            loadProducts(currentPage);
+            showNotification("Success", "Product deleted.", "success");
         } else {
-            showAlert("Selection Error", "Please select a product to delete.");
+            showNotification("Selection Error", "Please select a product to delete.", "error");
         }
     }
 
     @FXML
     private void handleUpdateProduct() {
-        // Similar to Add, but calls updateProduct with selected ID
-        Product selected = productTable.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            showAlert("Selection Error", "Please select a product to update.");
+        if (selectedProduct == null) {
+            showNotification("Selection Error", "Please select a product to update.", "error");
             return;
         }
         try {
-            // Update fields from inputs (assuming user clicked detailed view or re-entered)
-            // For simplicity, using text fields
+            // Update fields from inputs
             String name = txtProdName.getText();
             double price = Double.parseDouble(txtProdPrice.getText());
             double stock = Double.parseDouble(txtProdStock.getText());
@@ -721,7 +1000,8 @@ public class OwnerController {
             // Fetch Category ID from Map
             int catId = (categoryMap != null && categoryMap.containsKey(catName)) ? categoryMap.get(catName) : 1;
 
-            Product updateProd = new Product(selected.getId(), name, price, stock, catName, threshold, isPiece, null);
+            Product updateProd = new Product(selectedProduct.getId(), name, price, stock, catName, threshold, isPiece,
+                    null);
 
             FileInputStream fis = null;
             if (selectedImageFile != null) {
@@ -729,9 +1009,17 @@ public class OwnerController {
             }
 
             productDao.updateProduct(updateProd, catId, fis);
-            loadProducts();
+            // Update selected product's image references if changed, usually simpler to
+            // just reload
+            int currentPage = paginationProducts.getCurrentPageIndex();
+            loadProducts(currentPage);
+
+            // Re-select logic if we want to keep selection?
+            // For now, let's clear or simple reload
+            showNotification("Success", "Product updated.", "success");
+
         } catch (NumberFormatException | FileNotFoundException e) {
-            showAlert("Error", "Invalid input or file.");
+            showNotification("Error", "Invalid input or file.", "error");
         }
     }
 
@@ -742,6 +1030,8 @@ public class OwnerController {
         txtProdThreshold.clear();
         lblImageStatus.setText("");
         selectedImageFile = null;
+        imgProdPreview.setImage(null);
+        selectedProduct = null;
     }
 
     // --- Carrier Logic ---
