@@ -210,8 +210,7 @@ public class ProfileController {
 
             // Set session for the returned controller
             if (role.equalsIgnoreCase("owner")) {
-                OwnerController controller = loader.getController();
-                controller.setOwnerSession(userId, username);
+                // OwnerController session is global/injected
             } else if (role.equalsIgnoreCase("customer")) {
                 CustomerController controller = loader.getController();
                 controller.setCustomerSession(userId, username);
@@ -222,7 +221,9 @@ public class ProfileController {
 
             usernameField.getScene().setRoot(root);
 
-        } catch (IOException e) {
+        } catch (
+
+        IOException e) {
             e.printStackTrace();
             showError("Failed to return to dashboard: " + e.getMessage());
         }

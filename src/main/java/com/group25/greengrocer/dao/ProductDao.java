@@ -12,6 +12,23 @@ import java.util.List;
 
 public class ProductDao {
 
+    public java.util.Map<String, Integer> getCategories() {
+        java.util.Map<String, Integer> categories = new java.util.HashMap<>();
+        String query = "SELECT id, name FROM categories ORDER BY name ASC";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                categories.put(rs.getString("name"), rs.getInt("id"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return categories;
+    }
+
     public List<Product> getProductsByCategory(String category) {
         List<Product> products = new ArrayList<>();
         String query = "SELECT p.*, c.name as category_name FROM products p JOIN categories c ON p.category_id = c.id WHERE c.name = ? ORDER BY p.name ASC";

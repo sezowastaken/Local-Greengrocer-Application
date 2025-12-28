@@ -8,19 +8,32 @@ import com.group25.greengrocer.model.Message;
 import com.group25.greengrocer.model.Order;
 import com.group25.greengrocer.model.Product;
 import com.group25.greengrocer.model.User;
-import com.group25.greengrocer.util.Session; // Added Session import
 import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.scene.chart.BarChart;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.FileChooser;
+import javafx.scene.layout.AnchorPane;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.scene.layout.StackPane;
+import javafx.scene.shape.Circle;
+import javafx.scene.control.Slider;
+import javafx.scene.paint.ImagePattern;
+import javafx.scene.SnapshotParameters;
+import javafx.scene.image.WritableImage;
+import javafx.embed.swing.SwingFXUtils;
+import javax.imageio.ImageIO;
+import java.io.ByteArrayOutputStream;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.nio.file.Files;
 import java.util.Map;
 
 public class OwnerController {
@@ -137,6 +150,95 @@ public class OwnerController {
     @FXML
     private DatePicker dpValidUntil;
 
+    // --- Panel References for Sidebar Navigation ---
+    @FXML
+    private javafx.scene.layout.AnchorPane pnlOverview;
+    @FXML
+    private javafx.scene.layout.AnchorPane pnlProducts;
+    @FXML
+    private javafx.scene.layout.AnchorPane pnlCarriers;
+    @FXML
+    private javafx.scene.layout.AnchorPane pnlOrders;
+    @FXML
+    private javafx.scene.layout.AnchorPane pnlMessages;
+    @FXML
+    private javafx.scene.layout.AnchorPane pnlReports;
+    @FXML
+    private javafx.scene.layout.AnchorPane pnlMarketing;
+
+    // --- Navigation Buttons ---
+    @FXML
+    private Button btnOverview;
+    @FXML
+    private Button btnProducts;
+    @FXML
+    private Button btnCarriers;
+    @FXML
+    private Button btnOrders;
+    @FXML
+    private Button btnMessages;
+    @FXML
+    private Button btnReports;
+    @FXML
+    private Button btnMarketing;
+
+    // --- Overview Dashboard Stats Labels ---
+    @FXML
+    private Label lblTotalUsers;
+    @FXML
+    private Label lblTotalCarriers;
+    @FXML
+    private Label lblTotalOrders;
+    @FXML
+    private Label lblDeliveredOrders;
+    @FXML
+    private Label lblRecentActivity;
+
+    // --- Dashboard Table and Chart ---
+    @FXML
+    private TableView<Order> dashboardOrderTable;
+    @FXML
+    private TableColumn<Order, Long> colDashOrderId;
+    @FXML
+    private TableColumn<Order, String> colDashCustomer;
+    @FXML
+    private TableColumn<Order, String> colDashStatus;
+    @FXML
+    private TableColumn<Order, Double> colDashTotal;
+    @FXML
+    private javafx.scene.chart.PieChart userPieChart;
+
+    // --- Profile Panel Components ---
+    @FXML
+    private AnchorPane pnlProfile;
+    @FXML
+    private TextField txtProfileUsername;
+    @FXML
+    private TextField txtProfileRole;
+    @FXML
+    private PasswordField txtProfileNewPass;
+    @FXML
+    private PasswordField txtProfileConfirmPass;
+    @FXML
+    private PasswordField txtProfileCurrentPass;
+    @FXML
+    private Label lblProfileMessage;
+    @FXML
+    private StackPane cropContainer;
+    @FXML
+    private ImageView imgProfileView;
+    @FXML
+    private Slider sliderZoom;
+    @FXML
+    private Circle imgSidebarProfile;
+    @FXML
+    private Label lblSidebarPlaceholder;
+    @FXML
+    private Label lblProfilePlaceholder;
+
+    private byte[] profilePictureBytes; // Store current profile picture
+    private java.util.Map<String, Integer> categoryMap; // Store category name-to-id mapping
+
     @FXML
     public void initialize() {
         // Role Guard: STRICT access control for Owner
@@ -157,10 +259,256 @@ public class OwnerController {
         setupCouponTable();
 
         // Initialize Combos
-        comboProdCategory.setItems(FXCollections.observableArrayList("Vegetable", "Fruit"));
+        categoryMap = productDao.getCategories();
+        if (categoryMap != null && !categoryMap.isEmpty()) {
+            comboProdCategory.setItems(FXCollections.observableArrayList(categoryMap.keySet()));
+        } else {
+            // Fallback if DB is empty, though technically should be handled
+            comboProdCategory.setItems(FXCollections.observableArrayList());
+        }
         comboDiscountType.setItems(FXCollections.observableArrayList("PERCENT", "AMOUNT"));
 
+        // Initialize Panel Navigation - Show Products by default
+        setupPanelNavigation();
+
         loadAllData();
+
+        // Initialize dragging for profile picture
+        initProfileImageDrag();
+
+        // Initialize Zoom Slider
+        sliderZoom.valueProperty().addListener((obs, oldVal, newVal) -> {
+            if (imgProfileView != null) {
+                imgProfileView.setScaleX(newVal.doubleValue());
+                imgProfileView.setScaleY(newVal.doubleValue());
+            }
+        });
+
+        // Circular clip for crop container
+        Circle clip = new Circle(100);
+        clip.setCenterX(100);
+        clip.setCenterY(100);
+        cropContainer.setClip(clip);
+
+        // Sidebar Profile Image Update
+        updateSidebarProfile();
+    }
+
+    private double startX, startY;
+
+    private void initProfileImageDrag() {
+        imgProfileView.setOnMousePressed(e -> {
+            startX = e.getSceneX() - imgProfileView.getTranslateX();
+            startY = e.getSceneY() - imgProfileView.getTranslateY();
+        });
+
+        imgProfileView.setOnMouseDragged(e -> {
+            imgProfileView.setTranslateX(e.getSceneX() - startX);
+            imgProfileView.setTranslateY(e.getSceneY() - startY);
+        });
+    }
+
+    private void updateSidebarProfile() {
+        if (com.group25.greengrocer.util.Session.getCurrentUser() == null)
+            return;
+
+        byte[] userId = userDao.getProfilePicture(com.group25.greengrocer.util.Session.getCurrentUser().getId());
+        if (userId != null && userId.length > 0) {
+            try {
+                javafx.scene.image.Image image = new javafx.scene.image.Image(new java.io.ByteArrayInputStream(userId));
+                imgSidebarProfile.setFill(new ImagePattern(image));
+                if (lblSidebarPlaceholder != null)
+                    lblSidebarPlaceholder.setVisible(false);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        } else {
+            imgSidebarProfile.setFill(javafx.scene.paint.Color.web("#e0e0e0"));
+            if (lblSidebarPlaceholder != null)
+                lblSidebarPlaceholder.setVisible(true);
+        }
+    }
+
+    /**
+     * Setup Panel Navigation - Initialize sidebar panel switching
+     */
+    private void setupPanelNavigation() {
+        // Hide all panels initially
+        pnlOverview.setVisible(false);
+        pnlProducts.setVisible(false);
+        pnlCarriers.setVisible(false);
+        pnlOrders.setVisible(false);
+        pnlMessages.setVisible(false);
+        pnlReports.setVisible(false);
+        pnlMarketing.setVisible(false);
+
+        // Show Overview panel by default
+        pnlOverview.setVisible(true);
+        pnlOverview.toFront();
+        setActiveButton(btnOverview);
+
+        // Load dashboard stats
+        loadDashboardStats();
+    }
+
+    /**
+     * Handle Navigation Button Clicks - Switch between panels
+     */
+    @FXML
+    private void handleNavClick(javafx.event.ActionEvent event) {
+        hideAllPanels();
+
+        // Show selected panel and set active state
+        if (event.getSource() == btnOverview) {
+            pnlOverview.setVisible(true);
+            pnlOverview.toFront();
+            setActiveButton(btnOverview);
+            loadDashboardStats();
+        } else if (event.getSource() == btnProducts) {
+            pnlProducts.setVisible(true);
+            pnlProducts.toFront();
+            setActiveButton(btnProducts);
+        } else if (event.getSource() == btnCarriers) {
+            pnlCarriers.setVisible(true);
+            pnlCarriers.toFront();
+            setActiveButton(btnCarriers);
+        } else if (event.getSource() == btnOrders) {
+            pnlOrders.setVisible(true);
+            pnlOrders.toFront();
+            setActiveButton(btnOrders);
+        } else if (event.getSource() == btnMessages) {
+            pnlMessages.setVisible(true);
+            pnlMessages.toFront();
+            setActiveButton(btnMessages);
+        } else if (event.getSource() == btnReports) {
+            pnlReports.setVisible(true);
+            pnlReports.toFront();
+            setActiveButton(btnReports);
+        } else if (event.getSource() == btnMarketing) {
+            pnlMarketing.setVisible(true);
+            pnlMarketing.toFront();
+            setActiveButton(btnMarketing);
+        }
+    }
+
+    /**
+     * Hide all panels
+     */
+    private void hideAllPanels() {
+        pnlOverview.setVisible(false);
+        pnlProducts.setVisible(false);
+        pnlCarriers.setVisible(false);
+        pnlOrders.setVisible(false);
+        pnlMessages.setVisible(false);
+        pnlReports.setVisible(false);
+        pnlMarketing.setVisible(false);
+        if (pnlProfile != null) {
+            pnlProfile.setVisible(false);
+            pnlProfile.setManaged(false);
+        }
+    }
+
+    /**
+     * Set active button styling - highlight current page
+     */
+    private void setActiveButton(Button activeBtn) {
+        // Reset all buttons
+        btnOverview.setStyle("-fx-background-color: #05071F;");
+        btnProducts.setStyle("-fx-background-color: #05071F;");
+        btnCarriers.setStyle("-fx-background-color: #05071F;");
+        btnOrders.setStyle("-fx-background-color: #05071F;");
+        btnMessages.setStyle("-fx-background-color: #05071F;");
+        btnReports.setStyle("-fx-background-color: #05071F;");
+        btnMarketing.setStyle("-fx-background-color: #05071F;");
+
+        // Highlight active button
+        activeBtn.setStyle("-fx-background-color: #1620A1; -fx-text-fill: white;");
+    }
+
+    /**
+     * Load Dashboard Statistics from Database
+     */
+    private void loadDashboardStats() {
+        try {
+            java.util.List<Order> allOrders = orderDao.getAllOrders();
+
+            // Total Users (customers) - fetch from DB
+            long totalUsers = userDao.getCustomerCount();
+            lblTotalUsers.setText(String.valueOf(totalUsers));
+
+            // Total Carriers
+            int totalCarriers = userDao.getCarriers().size();
+            lblTotalCarriers.setText(String.valueOf(totalCarriers));
+
+            // Total Orders
+            int totalOrders = allOrders.size();
+            lblTotalOrders.setText(String.valueOf(totalOrders));
+
+            // Delivered Orders
+            long deliveredOrders = allOrders.stream()
+                    .filter(order -> order.getStatus() != null &&
+                            order.getStatus().toString().equalsIgnoreCase("DELIVERED"))
+                    .count();
+            lblDeliveredOrders.setText(String.valueOf(deliveredOrders));
+
+            // Recent Activity Summary
+            String activityText = "System Overview: No active users or orders.";
+            if (totalUsers > 0 || totalOrders > 0) {
+                activityText = String.format(
+                        "System Overview: %d active users, %d carriers managing deliveries. " +
+                                "%.1f%% order completion rate with %d total orders processed.",
+                        totalUsers,
+                        totalCarriers,
+                        totalOrders > 0 ? (deliveredOrders * 100.0 / totalOrders) : 0.0,
+                        totalOrders);
+            }
+            lblRecentActivity.setText(activityText);
+
+            // ===== LOAD DASHBOARD TABLE =====
+            // Get recent orders (last 10)
+            java.util.List<Order> recentOrders = allOrders.stream()
+                    .sorted((o1, o2) -> Long.compare(o2.getId(), o1.getId()))
+                    .limit(10)
+                    .collect(java.util.stream.Collectors.toList());
+
+            dashboardOrderTable.setItems(FXCollections.observableArrayList(recentOrders));
+
+            // Setup table columns
+            colDashOrderId.setCellValueFactory(
+                    cellData -> new javafx.beans.property.SimpleLongProperty(cellData.getValue().getId()).asObject());
+            colDashCustomer.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(
+                    "Customer #" + cellData.getValue().getCustomerId()));
+            colDashStatus.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(
+                    cellData.getValue().getStatus() != null ? cellData.getValue().getStatus().toString() : "N/A"));
+            colDashTotal.setCellValueFactory(
+                    cellData -> new javafx.beans.property.SimpleDoubleProperty(cellData.getValue().getTotal())
+                            .asObject());
+
+            // ===== LOAD PIE CHART =====
+            // Get all users and count by role
+            java.util.List<User> allUsers = userDao.getCarriers(); // Get carriers
+            int ownerCount = userDao.getOwnerCount(); // Fetch actual owner count from DB
+            int customerCount = (int) totalUsers;
+            int carrierCount = allUsers.size();
+
+            javafx.scene.chart.PieChart.Data ownerData = new javafx.scene.chart.PieChart.Data(
+                    "Owners (" + ownerCount + ")", ownerCount);
+            javafx.scene.chart.PieChart.Data customerData = new javafx.scene.chart.PieChart.Data(
+                    "Customers (" + customerCount + ")", customerCount);
+            javafx.scene.chart.PieChart.Data carrierData = new javafx.scene.chart.PieChart.Data(
+                    "Carriers (" + carrierCount + ")", carrierCount);
+
+            userPieChart.setData(FXCollections.observableArrayList(ownerData, customerData, carrierData));
+            userPieChart.setLegendVisible(true);
+
+        } catch (Exception e) {
+            lblTotalUsers.setText("N/A");
+            lblTotalCarriers.setText("N/A");
+            lblTotalOrders.setText("N/A");
+            lblDeliveredOrders.setText("N/A");
+            lblRecentActivity.setText("Error loading statistics: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     /**
@@ -169,32 +517,6 @@ public class OwnerController {
     public void setOwnerSession(long id, String username) {
         this.ownerId = id;
         this.ownerUsername = username;
-    }
-
-    @FXML
-    private void handleShowProfile() {
-        try {
-            // Get userId from Session if not already set
-            if (ownerId == 0) {
-                User currentUser = com.group25.greengrocer.util.Session.getCurrentUser();
-                if (currentUser != null) {
-                    this.ownerId = currentUser.getId();
-                    this.ownerUsername = currentUser.getUsername();
-                }
-            }
-
-            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
-                    getClass().getResource("/fxml/profile.fxml"));
-            javafx.scene.Parent root = loader.load();
-
-            ProfileController profileController = loader.getController();
-            profileController.setUserSession(ownerId, ownerUsername, "owner");
-
-            productTable.getScene().setRoot(root);
-        } catch (java.io.IOException e) {
-            e.printStackTrace();
-            showAlert("Error", "Failed to load profile page: " + e.getMessage());
-        }
     }
 
     @FXML
@@ -346,9 +668,8 @@ public class OwnerController {
             boolean isPiece = chkIsPiece.isSelected();
             String catName = comboProdCategory.getValue();
 
-            // INTENTIONAL: Hardcoded Category ID mapping for prototype phase.
-            // In production, fetch categories from DB via CategoryDao.
-            int catId = "Vegetable".equals(catName) ? 1 : 2;
+            // Fetch Category ID from Map
+            int catId = (categoryMap != null && categoryMap.containsKey(catName)) ? categoryMap.get(catName) : 1;
 
             Product newProd = new Product(0, name, price, stock, catName, threshold, isPiece, null);
 
@@ -397,8 +718,8 @@ public class OwnerController {
             boolean isPiece = chkIsPiece.isSelected();
             String catName = comboProdCategory.getValue();
 
-            // INTENTIONAL: Hardcoded Category ID mapping for prototype phase.
-            int catId = "Vegetable".equals(catName) ? 1 : 2;
+            // Fetch Category ID from Map
+            int catId = (categoryMap != null && categoryMap.containsKey(catName)) ? categoryMap.get(catName) : 1;
 
             Product updateProd = new Product(selected.getId(), name, price, stock, catName, threshold, isPiece, null);
 
@@ -566,5 +887,272 @@ public class OwnerController {
         alert.setHeaderText(null);
         alert.setContentText(content);
         alert.showAndWait();
+    }
+
+    // ================== PROFILE PANEL METHODS ==================
+
+    @FXML
+    private void handleShowProfile() {
+        // Hide all panels
+        hideAllPanels();
+
+        // Show profile panel
+        if (pnlProfile != null) {
+            pnlProfile.setVisible(true);
+            pnlProfile.setManaged(true);
+            loadProfileData();
+        }
+    }
+
+    @FXML
+    private void handleBackFromProfile() {
+        // Go back to Overview
+        pnlProfile.setVisible(false);
+        pnlProfile.setManaged(false);
+        pnlOverview.setVisible(true);
+        pnlOverview.setManaged(true);
+        setActiveButton(btnOverview);
+    }
+
+    private void loadProfileData() {
+        User currentUser = com.group25.greengrocer.util.Session.getCurrentUser();
+        if (currentUser != null) {
+            txtProfileUsername.setText(currentUser.getUsername());
+            txtProfileRole.setText(currentUser.getRole());
+
+            // Load profile picture from database
+            byte[] profilePictureData = userDao.getProfilePicture(currentUser.getId());
+
+            if (profilePictureData != null) {
+                profilePictureBytes = profilePictureData;
+                javafx.scene.image.Image image = new javafx.scene.image.Image(
+                        new java.io.ByteArrayInputStream(profilePictureBytes));
+
+                // Set to view
+                imgProfileView.setImage(image);
+                imgProfileView.setTranslateX(0);
+                imgProfileView.setTranslateY(0);
+                imgProfileView.setScaleX(1);
+                imgProfileView.setScaleY(1);
+                sliderZoom.setValue(1);
+                sliderZoom.setVisible(true);
+
+                lblProfilePlaceholder.setVisible(false);
+            } else {
+                imgProfileView.setImage(null);
+                sliderZoom.setVisible(false);
+                lblProfilePlaceholder.setVisible(true);
+            }
+
+            // Clear password fields
+            txtProfileCurrentPass.clear();
+            txtProfileNewPass.clear();
+            txtProfileConfirmPass.clear();
+
+            lblProfileMessage.setText("");
+            lblProfileMessage.setStyle("-fx-background-color: transparent;");
+        }
+    }
+
+    @FXML
+    private void handleUploadPhoto() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Select Profile Picture");
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Image Files", "*.png", "*.jpg", "*.jpeg"));
+
+        File selectedFile = fileChooser.showOpenDialog(imgProfileView.getScene().getWindow());
+
+        if (selectedFile != null) {
+            try {
+                // Check file size (max 2MB)
+                long fileSize = selectedFile.length();
+                if (fileSize > 2 * 1024 * 1024) {
+                    showProfileError("File size exceeds 2MB limit!");
+                    return;
+                }
+
+                // Read file to byte array
+                profilePictureBytes = Files.readAllBytes(selectedFile.toPath());
+
+                // Display image
+                Image image = new Image(new ByteArrayInputStream(profilePictureBytes));
+                imgProfileView.setImage(image);
+                imgProfileView.setVisible(true);
+                lblProfilePlaceholder.setVisible(false);
+                sliderZoom.setVisible(true); // Show slider when image is loaded
+
+                // Reset zoom and position
+                imgProfileView.setTranslateX(0);
+                imgProfileView.setTranslateY(0);
+                imgProfileView.setScaleX(1);
+                imgProfileView.setScaleY(1);
+                sliderZoom.setValue(1);
+
+                showProfileSuccess("Photo uploaded! Click 'Save Changes' to update your profile.");
+
+            } catch (Exception e) {
+                showProfileError("Error loading image: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @FXML
+    private void handleRemovePhoto() {
+        imgProfileView.setImage(null);
+        sliderZoom.setVisible(false);
+        lblProfilePlaceholder.setVisible(true);
+        profilePictureBytes = null; // Mark for deletion logic if needed, or just set to null
+
+        // But wait, if we want to delete from DB on save:
+        // We need a flag or check if imgProfileView.getImage() is null
+        showProfileSuccess("Photo removed! Click 'Save Changes' to update.");
+    }
+
+    @FXML
+    private void handleSaveProfile() {
+        User currentUser = com.group25.greengrocer.util.Session.getCurrentUser();
+        if (currentUser == null) {
+            showProfileError("Session expired. Please login again.");
+            return;
+        }
+
+        String currentPassword = txtProfileCurrentPass.getText();
+        String newPassword = txtProfileNewPass.getText();
+        String confirmPassword = txtProfileConfirmPass.getText();
+
+        // Check if user wants to change password
+        boolean isChangingPassword = !newPassword.isEmpty() || !confirmPassword.isEmpty();
+        StringBuilder successMsg = new StringBuilder();
+
+        // Validate current password only if changing password
+        if (isChangingPassword && currentPassword.isEmpty()) {
+            showProfileError("Please enter your current password to change password.");
+            return;
+        }
+
+        // Verify current password only if changing password
+        if (isChangingPassword) {
+            String hashedCurrentPassword = hashPassword(currentPassword);
+            if (!hashedCurrentPassword.equals(currentUser.getPassword())) {
+                showProfileError("Current password is incorrect!");
+                return;
+            }
+        }
+
+        // If changing password
+        if (!newPassword.isEmpty() || !confirmPassword.isEmpty()) {
+            if (newPassword.length() < 3) {
+                showProfileError("New password must be at least 3 characters long.");
+                return;
+            }
+
+            if (!newPassword.equals(confirmPassword)) {
+                showProfileError("New passwords do not match!");
+                return;
+            }
+
+            // Update password
+            String hashedNewPassword = hashPassword(newPassword);
+            boolean passwordUpdated = userDao.updatePassword(currentUser.getId(), hashedNewPassword);
+
+            if (!passwordUpdated) {
+                showProfileError("Failed to update password!");
+                return;
+            }
+            successMsg.append("Password updated successfully!");
+        }
+
+        // Capture the cropped image from the UI
+        if (imgProfileView.getImage() != null) {
+            try {
+                WritableImage snapshot = cropContainer.snapshot(new SnapshotParameters(), null);
+                BufferedImage bufferedImage = SwingFXUtils.fromFXImage(snapshot, null);
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                ImageIO.write(bufferedImage, "png", baos);
+                profilePictureBytes = baos.toByteArray();
+            } catch (Exception e) {
+                e.printStackTrace();
+                showProfileError("Error processing image!");
+                return;
+            }
+        } else {
+            profilePictureBytes = null; // Image removed
+        }
+
+        // Save profile picture to database
+        if (profilePictureBytes != null) {
+            boolean pictureSaved = userDao.saveProfilePicture(
+                    currentUser.getId(),
+                    profilePictureBytes);
+
+            if (!pictureSaved) {
+                showProfileError("Failed to save profile picture!");
+                return;
+            }
+            if (successMsg.length() > 0)
+                successMsg.append(" and ");
+            successMsg.append("profile picture updated successfully!");
+        } else {
+            // If null, user might have removed it. Let's delete it.
+            userDao.deleteProfilePicture(currentUser.getId());
+            if (successMsg.length() > 0)
+                successMsg.append(" and ");
+            successMsg.append("profile picture removed successfully!");
+        }
+
+        // Update sidebar
+        updateSidebarProfile();
+
+        if (successMsg.length() == 0) {
+            showProfileSuccess("No changes to save.");
+        } else {
+            showProfileSuccess(successMsg.toString());
+        }
+
+        // Clear password fields
+        txtProfileCurrentPass.clear();
+        txtProfileNewPass.clear();
+        txtProfileConfirmPass.clear();
+    }
+
+    @FXML
+    private void handleResetProfile() {
+        loadProfileData();
+        showProfileSuccess("Profile form reset.");
+    }
+
+    private void showProfileSuccess(String message) {
+        lblProfileMessage.setText("✓ " + message);
+        lblProfileMessage.setStyle(
+                "-fx-background-color: #d4edda; -fx-text-fill: #155724; -fx-border-color: #c3e6cb; -fx-border-width: 1;");
+    }
+
+    private void showProfileError(String message) {
+        lblProfileMessage.setText("✗ " + message);
+        lblProfileMessage.setStyle(
+                "-fx-background-color: #f8d7da; -fx-text-fill: #721c24; -fx-border-color: #f5c6cb; -fx-border-width: 1;");
+    }
+
+    /**
+     * Hash password using SHA-256
+     */
+    private String hashPassword(String password) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] encodedhash = digest.digest(password.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder(2 * encodedhash.length);
+            for (byte b : encodedhash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1)
+                    hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 }

@@ -17,7 +17,7 @@ public class MainApp extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
-        scene = new Scene(loadFXML("/fxml/login"), 960, 540); // 960x540 as per PDF
+        scene = new Scene(loadFXML("/fxml/login"), 1280, 720); // Larger window for better visibility
         stage.setScene(scene);
         stage.setTitle(App.APP_TITLE);
         stage.show();

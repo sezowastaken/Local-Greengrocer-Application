@@ -33,29 +33,56 @@
 }
 
 .button-primary {
-    -fx-background-color: #4CAF50;
+    -fx-background-color: #3498db;
     -fx-text-fill: white;
     -fx-font-weight: bold;
-    -fx-padding: 10px 20px;
-    -fx-background-radius: 3px;
+    -fx-font-size: 13px;
+    -fx-padding: 8px 16px;
+    -fx-background-radius: 20px;
     -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(52, 152, 219, 0.3), 5, 0, 0, 2);
+    -fx-border-width: 0;
 }
 
 .button-primary:hover {
-    -fx-background-color: #45a049;
+    -fx-background-color: #2980b9;
+    -fx-effect: dropshadow(three-pass-box, rgba(52, 152, 219, 0.5), 8, 0, 0, 3);
 }
 
 .button-secondary {
-    -fx-background-color: #e0e0e0;
-    -fx-text-fill: #333;
+    -fx-background-color: #ecf0f1;
+    -fx-text-fill: #7f8c8d;
     -fx-font-weight: bold;
-    -fx-padding: 10px 20px;
-    -fx-background-radius: 3px;
+    -fx-font-size: 13px;
+    -fx-padding: 8px 16px;
+    -fx-background-radius: 20px;
     -fx-cursor: hand;
+    -fx-border-color: #bdc3c7;
+    -fx-border-width: 1px;
+    -fx-border-radius: 20px;
 }
 
 .button-secondary:hover {
-    -fx-background-color: #d0d0d0;
+    -fx-background-color: #bdc3c7;
+    -fx-text-fill: #2c3e50;
+    -fx-border-color: #95a5a6;
+}
+
+.button-danger {
+    -fx-background-color: #e74c3c;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-padding: 8px 16px;
+    -fx-background-radius: 20px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(231, 76, 60, 0.3), 5, 0, 0, 2);
+    -fx-border-width: 0;
+}
+
+.button-danger:hover {
+    -fx-background-color: #c0392b;
+    -fx-effect: dropshadow(three-pass-box, rgba(231, 76, 60, 0.5), 8, 0, 0, 3);
 }
 
 
@@ -702,3 +729,242 @@ OLD CARRIER PANEL STYLES (BACKUP)
 }
 
 */
+
+/* ============================================
+   OWNER PANEL DARK THEME (Restaurant-Inspired)
+   ============================================ */
+
+/* ====/* ========================================
+   OWNER PANEL - DARK THEME SIDEBAR
+   ======================================== */
+
+/* Main Owner Root Background */
+.owner-dark-root {
+    -fx-background-color: #02030A;
+}
+
+/* Sidebar Styling */
+.owner-sidebar {
+    -fx-background-color: #05071F;
+    -fx-background-radius: 0 15 15 0;
+    /* Rounded right corners */
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.3), 10, 0, 2, 0);
+    -fx-spacing: 0;
+}
+
+/* Sidebar Navigation Buttons */
+.owner-nav-btn {
+    -fx-background-color: Transparent;
+    -fx-text-fill: #B7C3D7;
+    -fx-font-size: 14px;
+    -fx-alignment: BASELINE_LEFT;
+    -fx-padding: 12px 30px;
+    -fx-cursor: hand;
+    -fx-border-width: 0;
+    -fx-background-radius: 0;
+    -fx-border-color: transparent transparent transparent #05071F;
+    -fx-border-width: 0 0 0 4px;
+    -fx-transition: all 0.3s;
+}
+
+.owner-nav-btn:hover {
+    -fx-background-color: #10165F;
+    -fx-text-fill: #e7e5e5;
+    -fx-border-color: transparent transparent transparent #2A73FF;
+}
+
+.owner-nav-btn:pressed {
+    -fx-background-color: #1620A1;
+}
+
+/* Sidebar Profile Section */
+.owner-profile-label {
+    -fx-text-fill: #e7e5e5;
+    -fx-font-size: 14px;
+    -fx-padding: 10px 0;
+}
+
+/* Content Panels - Dark Background Variations */
+.owner-panel-products {
+    -fx-background-color: #02030A;
+}
+
+.owner-panel-carriers {
+    -fx-background-color: #1620A1;
+}
+
+.owner-panel-orders {
+    -fx-background-color: #464F67;
+}
+
+.owner-panel-messages {
+    -fx-background-color: #53639F;
+}
+
+.owner-panel-reports {
+    -fx-background-color: #02030A;
+}
+
+.owner-panel-marketing {
+    -fx-background-color: #02030A;
+}
+
+/* Search Field in Dark Theme */
+.owner-search-field {
+    -fx-background-color: #02030A;
+    -fx-border-color: #B7C3D7;
+    -fx-border-radius: 20px;
+    -fx-background-radius: 20px;
+    -fx-text-fill: #e7e5e5;
+    -fx-prompt-text-fill: #B7C3D7;
+    -fx-padding: 8px 15px;
+}
+
+/* Owner ScrollPane Dark Theme */
+.owner-scroll-pane {
+    -fx-background-color: #02030A;
+}
+
+.owner-scroll-pane .scroll-bar:horizontal,
+.owner-scroll-pane .scroll-bar:vertical {
+    -fx-background-color: transparent;
+}
+
+.owner-scroll-pane .increment-button,
+.owner-scroll-pane .decrement-button {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+
+.owner-scroll-pane .scroll-bar:horizontal .track,
+.owner-scroll-pane .scroll-bar:vertical .track {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-background-radius: 0em;
+}
+
+.owner-scroll-pane .scroll-bar:horizontal .thumb,
+.owner-scroll-pane .scroll-bar:vertical .thumb {
+    -fx-background-color: #10165F;
+    -fx-background-radius: 5em;
+}
+
+.owner-scroll-pane>.corner {
+    -fx-background-color: #02030A;
+}
+
+/* Dark Theme Labels */
+.owner-dark-label {
+    -fx-text-fill: #e7e5e5;
+}
+
+.owner-dark-header {
+    -fx-text-fill: #e7e5e5;
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+}
+
+/* Stats Cards for Owner Dashboard */
+.owner-stat-card {
+    -fx-background-color: transparent;
+    -fx-alignment: center;
+}
+
+.owner-stat-value {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+}
+
+.owner-stat-label {
+    -fx-text-fill: #e7e5e5;
+    -fx-font-size: 12px;
+}
+
+/* Stat Color Variations */
+.stat-blue {
+    -fx-text-fill: #2A73FF;
+}
+
+.stat-cyan {
+    -fx-text-fill: #26bfbc;
+}
+
+.stat-pink {
+    -fx-text-fill: #fa5f7e;
+}
+
+.stat-red {
+    -fx-text-fill: #de0000;
+}
+
+/* ============================================
+   PROFILE PANEL BUTTONS
+   ============================================ */
+
+.btn-profile-upload {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-padding: 8px 16px;
+    -fx-background-radius: 20px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(52, 152, 219, 0.3), 5, 0, 0, 2);
+    -fx-border-width: 0;
+}
+
+.btn-profile-upload:hover {
+    -fx-background-color: #2980b9;
+    -fx-effect: dropshadow(three-pass-box, rgba(52, 152, 219, 0.5), 8, 0, 0, 3);
+}
+
+.btn-profile-save {
+    -fx-background-color: #27ae60;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 14px;
+    -fx-padding: 10px 24px;
+    -fx-background-radius: 25px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(39, 174, 96, 0.3), 5, 0, 0, 2);
+    -fx-border-width: 0;
+}
+
+.btn-profile-save:hover {
+    -fx-background-color: #219150;
+    -fx-effect: dropshadow(three-pass-box, rgba(39, 174, 96, 0.5), 8, 0, 0, 3);
+}
+
+.btn-profile-reset {
+    -fx-background-color: #ecf0f1;
+    -fx-text-fill: #7f8c8d;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-padding: 8px 16px;
+    -fx-background-radius: 20px;
+    -fx-cursor: hand;
+    -fx-border-color: #bdc3c7;
+    -fx-border-width: 1px;
+    -fx-border-radius: 20px;
+}
+
+.btn-profile-reset:hover {
+    -fx-background-color: #bdc3c7;
+    -fx-text-fill: #2c3e50;
+    -fx-border-color: #95a5a6;
+}
+
+.btn-profile-remove {
+    -fx-background-color: transparent;
+    -fx-text-fill: #e74c3c;
+    -fx-font-weight: bold;
+    -fx-font-size: 12px;
+    -fx-padding: 5px 10px;
+    -fx-cursor: hand;
+    -fx-underline: true;
+}
+
+.btn-profile-remove:hover {
+    -fx-text-fill: #c0392b;
+    -fx-effect: dropshadow(three-pass-box, rgba(231, 76, 60, 0.1), 5, 0, 0, 0);
+}

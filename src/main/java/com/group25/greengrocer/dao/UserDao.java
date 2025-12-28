@@ -13,20 +13,19 @@ import com.group25.greengrocer.util.DbAdapter;
 
 public class UserDao {
 
-    public List<User> getCarriers() {
-        List<User> carriers = new ArrayList<>();
+    public java.util.List<User> getCarriers() {
+        java.util.List<User> carriers = new ArrayList<>();
         String query = "SELECT id, username, password_hash FROM users WHERE role = 'carrier'";
 
         try (Connection conn = DbAdapter.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query);
-             ResultSet rs = stmt.executeQuery()) {
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
 
             while (rs.next()) {
                 carriers.add(new Carrier(
                         rs.getInt("id"),
                         rs.getString("username"),
-                        rs.getString("password_hash")
-                ));
+                        rs.getString("password_hash")));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -34,11 +33,39 @@ public class UserDao {
         return carriers;
     }
 
+    public int getCustomerCount() {
+        String query = "SELECT COUNT(*) FROM users WHERE role = 'customer'";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public int getOwnerCount() {
+        String query = "SELECT COUNT(*) FROM users WHERE role = 'owner'";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
     public void addCarrier(String username, String password) {
         String query = "INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'carrier')";
 
         try (Connection conn = DbAdapter.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+                PreparedStatement stmt = conn.prepareStatement(query)) {
 
             stmt.setString(1, username);
             stmt.setString(2, hashPassword(password));
@@ -53,7 +80,7 @@ public class UserDao {
         String query = "DELETE FROM users WHERE id = ? AND role = 'carrier'";
 
         try (Connection conn = DbAdapter.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(query)) {
+                PreparedStatement stmt = conn.prepareStatement(query)) {
 
             stmt.setInt(1, userId);
             stmt.executeUpdate();
@@ -70,7 +97,7 @@ public class UserDao {
         String sql = "SELECT id, username, role, full_name, phone, address_line, city FROM users WHERE id = ?";
 
         try (Connection conn = DbAdapter.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setLong(1, userId);
 
@@ -83,8 +110,7 @@ public class UserDao {
                             rs.getString("full_name"),
                             rs.getString("phone"),
                             rs.getString("address_line"),
-                            rs.getString("city")
-                    );
+                            rs.getString("city"));
                 }
             }
         }
@@ -95,15 +121,15 @@ public class UserDao {
      * Update user profile information
      */
     public void updateProfile(long userId,
-                              String fullName,
-                              String phone,
-                              String addressLine,
-                              String city) throws SQLException {
+            String fullName,
+            String phone,
+            String addressLine,
+            String city) throws SQLException {
 
         String sql = "UPDATE users SET full_name = ?, phone = ?, address_line = ?, city = ? WHERE id = ?";
 
         try (Connection conn = DbAdapter.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setString(1, fullName);
             stmt.setString(2, phone);
@@ -118,16 +144,107 @@ public class UserDao {
         }
     }
 
+    /**
+     * Update user password
+     */
+    public boolean updatePassword(int userId, String newPasswordHash) {
+        String sql = "UPDATE users SET password_hash = ? WHERE id = ?";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, newPasswordHash);
+            stmt.setInt(2, userId);
+
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Save or update profile picture for a user
+     * 
+     * @param userId      User ID
+     * @param pictureData Image data as byte array
+     * @return true if successful, false otherwise
+     */
+    public boolean saveProfilePicture(int userId, byte[] pictureData) {
+        String sql = "UPDATE users SET profile_picture_blob = ? WHERE id = ?";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setBytes(1, pictureData);
+            stmt.setInt(2, userId);
+
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Get profile picture for a user
+     * 
+     * @param userId User ID
+     * @return Profile picture as byte array, or null if not found
+     */
+    public byte[] getProfilePicture(int userId) {
+        String sql = "SELECT profile_picture_blob FROM users WHERE id = ?";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, userId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getBytes("profile_picture_blob");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * Delete profile picture for a user
+     * 
+     * @param userId User ID
+     * @return true if successful, false otherwise
+     */
+    public boolean deleteProfilePicture(int userId) {
+        String sql = "UPDATE users SET profile_picture_blob = NULL WHERE id = ?";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, userId);
+            return stmt.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     private String hashPassword(String password) {
         try {
-            java.security.MessageDigest digest =
-                    java.security.MessageDigest.getInstance("SHA-256");
-            byte[] encodedhash =
-                    digest.digest(password.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] encodedhash = digest.digest(password.getBytes(java.nio.charset.StandardCharsets.UTF_8));
             StringBuilder hexString = new StringBuilder(2 * encodedhash.length);
             for (byte b : encodedhash) {
                 String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
+                if (hex.length() == 1)
+                    hexString.append('0');
                 hexString.append(hex);
             }
             return hexString.toString();
@@ -150,8 +267,8 @@ public class UserDao {
         private String city;
 
         public UserProfile(long id, String username, String role,
-                           String fullName, String phone,
-                           String addressLine, String city) {
+                String fullName, String phone,
+                String addressLine, String city) {
             this.id = id;
             this.username = username;
             this.role = role;
@@ -161,18 +278,48 @@ public class UserDao {
             this.city = city;
         }
 
-        public long getId() { return id; }
-        public String getUsername() { return username; }
-        public String getRole() { return role; }
+        public long getId() {
+            return id;
+        }
 
-        public String getFullName() { return fullName != null ? fullName : ""; }
-        public String getPhone() { return phone != null ? phone : ""; }
-        public String getAddressLine() { return addressLine != null ? addressLine : ""; }
-        public String getCity() { return city != null ? city : ""; }
+        public String getUsername() {
+            return username;
+        }
 
-        public void setFullName(String fullName) { this.fullName = fullName; }
-        public void setPhone(String phone) { this.phone = phone; }
-        public void setAddressLine(String addressLine) { this.addressLine = addressLine; }
-        public void setCity(String city) { this.city = city; }
+        public String getRole() {
+            return role;
+        }
+
+        public String getFullName() {
+            return fullName != null ? fullName : "";
+        }
+
+        public String getPhone() {
+            return phone != null ? phone : "";
+        }
+
+        public String getAddressLine() {
+            return addressLine != null ? addressLine : "";
+        }
+
+        public String getCity() {
+            return city != null ? city : "";
+        }
+
+        public void setFullName(String fullName) {
+            this.fullName = fullName;
+        }
+
+        public void setPhone(String phone) {
+            this.phone = phone;
+        }
+
+        public void setAddressLine(String addressLine) {
+            this.addressLine = addressLine;
+        }
+
+        public void setCity(String city) {
+            this.city = city;
+        }
     }
 }
