@@ -4,11 +4,8 @@ import com.group25.greengrocer.dao.MessageDao;
 import com.group25.greengrocer.dao.OrderDao;
 import com.group25.greengrocer.dao.ProductDao;
 import com.group25.greengrocer.dao.UserDao;
-import com.group25.greengrocer.model.Message;
-import com.group25.greengrocer.model.Order;
-import com.group25.greengrocer.model.Product;
-import com.group25.greengrocer.model.Carrier;
-import com.group25.greengrocer.model.User;
+import com.group25.greengrocer.dao.CustomerStatsDao;
+import com.group25.greengrocer.model.*;
 import com.group25.greengrocer.util.NotificationUtil;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
@@ -56,7 +53,8 @@ public class OwnerController {
     private OrderDao orderDao = new OrderDao();
     private MessageDao messageDao = new MessageDao();
     private com.group25.greengrocer.dao.CouponDao couponDao = new com.group25.greengrocer.dao.CouponDao();
-    private com.group25.greengrocer.service.LoyaltyService loyaltyService = new com.group25.greengrocer.service.LoyaltyService();
+
+    private CustomerStatsDao customerStatsDao = new CustomerStatsDao();
 
     // --- Product Tab ---
     @FXML
@@ -220,8 +218,7 @@ public class OwnerController {
     private BarChart<String, Number> chartRevenue;
 
     // --- Marketing Tab ---
-    @FXML
-    private TextField txtLoyaltyRate;
+
     @FXML
     private TableView<com.group25.greengrocer.model.Coupon> couponTable;
     @FXML
@@ -269,6 +266,8 @@ public class OwnerController {
     private javafx.scene.layout.AnchorPane pnlReports;
     @FXML
     private javafx.scene.layout.AnchorPane pnlMarketing;
+    @FXML
+    private javafx.scene.layout.AnchorPane pnlLoyalty;
 
     // --- Navigation Buttons ---
     @FXML
@@ -285,6 +284,28 @@ public class OwnerController {
     private Button btnReports;
     @FXML
     private Button btnMarketing;
+    @FXML
+    private Button btnLoyalty;
+
+    // --- Loyalty Table ---
+    @FXML
+    private TableView<CustomerStats> loyaltyTable;
+    @FXML
+    private TableColumn<CustomerStats, Long> colLoyaltyId;
+    @FXML
+    private TableColumn<CustomerStats, String> colLoyaltyUsername;
+    @FXML
+    private TableColumn<CustomerStats, String> colLoyaltyName;
+    @FXML
+    private TableColumn<CustomerStats, String> colLoyaltyDate;
+    @FXML
+    private TableColumn<CustomerStats, Integer> colLoyaltyOrders;
+    @FXML
+    private TableColumn<CustomerStats, java.math.BigDecimal> colLoyaltySpent;
+    @FXML
+    private TableColumn<CustomerStats, java.math.BigDecimal> colLoyaltyRate;
+    @FXML
+    private TableColumn<CustomerStats, Void> colLoyaltyAction;
 
     // --- Overview Dashboard Stats Labels ---
     @FXML
@@ -444,6 +465,7 @@ public class OwnerController {
 
         // Initialize Panel Navigation - Show Products by default
         setupPanelNavigation();
+        setupLoyaltyTable();
 
         loadAllData();
 
@@ -515,6 +537,7 @@ public class OwnerController {
         pnlMessages.setVisible(false);
         pnlReports.setVisible(false);
         pnlMarketing.setVisible(false);
+        pnlLoyalty.setVisible(false);
 
         // Show Overview panel by default
         pnlOverview.setVisible(true);
@@ -532,36 +555,43 @@ public class OwnerController {
     private void handleNavClick(javafx.event.ActionEvent event) {
         hideAllPanels();
 
+        Button clicked = (Button) event.getSource();
+
         // Show selected panel and set active state
-        if (event.getSource() == btnOverview) {
+        if (clicked == btnOverview) {
             pnlOverview.setVisible(true);
             pnlOverview.toFront();
             setActiveButton(btnOverview);
             loadDashboardStats();
-        } else if (event.getSource() == btnProducts) {
+        } else if (clicked == btnProducts) {
             pnlProducts.setVisible(true);
             pnlProducts.toFront();
             setActiveButton(btnProducts);
-        } else if (event.getSource() == btnCarriers) {
+        } else if (clicked == btnCarriers) {
             pnlCarriers.setVisible(true);
             pnlCarriers.toFront();
             setActiveButton(btnCarriers);
-        } else if (event.getSource() == btnOrders) {
+        } else if (clicked == btnOrders) {
             pnlOrders.setVisible(true);
             pnlOrders.toFront();
             setActiveButton(btnOrders);
-        } else if (event.getSource() == btnMessages) {
+        } else if (clicked == btnMessages) {
             pnlMessages.setVisible(true);
             pnlMessages.toFront();
             setActiveButton(btnMessages);
-        } else if (event.getSource() == btnReports) {
+        } else if (clicked == btnReports) {
             pnlReports.setVisible(true);
             pnlReports.toFront();
             setActiveButton(btnReports);
-        } else if (event.getSource() == btnMarketing) {
+        } else if (clicked == btnMarketing) {
             pnlMarketing.setVisible(true);
             pnlMarketing.toFront();
             setActiveButton(btnMarketing);
+        } else if (clicked == btnLoyalty) {
+            pnlLoyalty.setVisible(true);
+            pnlLoyalty.toFront();
+            setActiveButton(btnLoyalty);
+            loadCustomerStats();
         }
     }
 
@@ -576,6 +606,7 @@ public class OwnerController {
         pnlMessages.setVisible(false);
         pnlReports.setVisible(false);
         pnlMarketing.setVisible(false);
+        pnlLoyalty.setVisible(false);
         if (pnlProfile != null) {
             pnlProfile.setVisible(false);
             pnlProfile.setManaged(false);
@@ -594,6 +625,7 @@ public class OwnerController {
         btnMessages.setStyle("-fx-background-color: #05071F;");
         btnReports.setStyle("-fx-background-color: #05071F;");
         btnMarketing.setStyle("-fx-background-color: #05071F;");
+        btnLoyalty.setStyle("-fx-background-color: #05071F;");
 
         // Highlight active button
         activeBtn.setStyle("-fx-background-color: #1620A1; -fx-text-fill: white;");
@@ -713,12 +745,11 @@ public class OwnerController {
         loadMessages();
         loadReports();
         loadMarketingData();
+        loadCustomerStats();
     }
 
     private void loadMarketingData() {
         // Loyalty
-        double rate = loyaltyService.getLoyaltyDiscountRate();
-        txtLoyaltyRate.setText(String.valueOf(rate));
 
         // Coupons
         couponTable.setItems(FXCollections.observableArrayList(couponDao.getAllCoupons()));
@@ -809,21 +840,6 @@ public class OwnerController {
     }
 
     @FXML
-    private void handleSaveLoyalty() {
-        try {
-            double rate = Double.parseDouble(txtLoyaltyRate.getText());
-            if (rate < 0 || rate > 1) {
-                NotificationUtil.showError("Invalid Input", "Rate must be between 0.0 and 1.0");
-                return;
-            }
-            loyaltyService.setLoyaltyDiscountRate(rate);
-            NotificationUtil.showSuccess("Success", "Loyalty discount rate updated.");
-        } catch (NumberFormatException e) {
-            NotificationUtil.showError("Invalid Input", "Please enter a valid number.");
-        }
-    }
-
-    @FXML
     private void handleAddCoupon() {
         try {
             String code = txtCouponCode.getText();
@@ -890,11 +906,118 @@ public class OwnerController {
 
     @FXML
     private void handleDeleteCoupon() {
-        com.group25.greengrocer.model.Coupon selected = couponTable.getSelectionModel().getSelectedItem();
-        if (selected != null) {
-            couponDao.deleteCoupon(selected.getId());
-            loadMarketingData();
+        Coupon selected = couponTable.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            showNotification("Delete Failed", "No coupon selected.", "error");
+            return;
         }
+
+        Alert confirm = new Alert(Alert.AlertType.CONFIRMATION, "Delete coupon " + selected.getCode() + "?",
+                ButtonType.YES, ButtonType.NO);
+        confirm.showAndWait().ifPresent(response -> {
+            if (response == ButtonType.YES) {
+                new com.group25.greengrocer.dao.CouponDao().deleteCoupon(selected.getId());
+                showNotification("Success", "Coupon deleted.", "success");
+                loadMarketingData();
+            }
+        });
+    }
+
+    // --- Loyalty Management Logic ---
+
+    private void setupLoyaltyTable() {
+        colLoyaltyId.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("id"));
+        colLoyaltyUsername.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("username"));
+        colLoyaltyName.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("fullName"));
+
+        colLoyaltyDate.setCellValueFactory(cellData -> {
+            if (cellData.getValue().getRegisteredDate() != null) {
+                return new javafx.beans.property.SimpleStringProperty(
+                        cellData.getValue().getRegisteredDate()
+                                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")));
+            }
+            return new javafx.beans.property.SimpleStringProperty("");
+        });
+
+        colLoyaltyOrders.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("totalOrders"));
+        colLoyaltySpent.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("totalSpent"));
+
+        colLoyaltyRate
+                .setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("individualLoyaltyRate"));
+        colLoyaltyRate.setCellFactory(column -> new TableCell<CustomerStats, java.math.BigDecimal>() {
+            @Override
+            protected void updateItem(java.math.BigDecimal item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setText(null);
+                } else if (item == null) {
+                    setText("Global");
+                } else {
+                    setText(String.format("%.2f%%", item.doubleValue() * 100));
+                }
+            }
+        });
+
+        // Action column with "Edit Rate" button
+        colLoyaltyAction.setCellFactory(param -> new TableCell<CustomerStats, Void>() {
+            private final Button btn = new Button("Edit Rate");
+            {
+                btn.getStyleClass().add("button-secondary");
+                btn.setStyle("-fx-font-size: 10px; -fx-padding: 3 8;");
+                btn.setOnAction(event -> {
+                    CustomerStats stats = getTableView().getItems().get(getIndex());
+                    handleSetIndividualRate(stats);
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                if (empty)
+                    setGraphic(null);
+                else
+                    setGraphic(btn);
+            }
+        });
+    }
+
+    @FXML
+    private void handleRefreshLoyalty() {
+        loadCustomerStats();
+        showNotification("Refreshed", "Customer stats updated.", "info");
+    }
+
+    private void loadCustomerStats() {
+        if (loyaltyTable == null)
+            return;
+        List<CustomerStats> stats = customerStatsDao.getAllCustomerStats();
+        loyaltyTable.setItems(javafx.collections.FXCollections.observableArrayList(stats));
+    }
+
+    private void handleSetIndividualRate(CustomerStats stats) {
+        TextInputDialog dialog = new TextInputDialog(
+                stats.getIndividualLoyaltyRate() != null ? String.valueOf(stats.getIndividualLoyaltyRate()) : "");
+        dialog.setTitle("Set Individual Loyalty Rate");
+        dialog.setHeaderText("Set rate for " + stats.getUsername());
+        dialog.setContentText("Enter rate (0.00 - 1.00), or empty for Global:");
+
+        dialog.showAndWait().ifPresent(result -> {
+            try {
+                java.math.BigDecimal rate = null;
+                if (!result.trim().isEmpty()) {
+                    rate = new java.math.BigDecimal(result.trim());
+                    if (rate.compareTo(java.math.BigDecimal.ZERO) < 0 || rate.compareTo(java.math.BigDecimal.ONE) > 0) {
+                        showNotification("Invalid Rate", "Rate must be between 0.0 and 1.0", "error");
+                        return;
+                    }
+                }
+                userDao.setIndividualLoyaltyRate(stats.getId(), rate);
+                showNotification("Success", "Loyalty rate updated.", "success");
+                loadCustomerStats();
+            } catch (NumberFormatException e) {
+                showNotification("Error", "Invalid number format.", "error");
+            }
+        });
     }
 
     // --- Product Logic ---

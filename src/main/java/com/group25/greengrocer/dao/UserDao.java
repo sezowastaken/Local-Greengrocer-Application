@@ -390,4 +390,32 @@ public class UserDao {
             this.city = city;
         }
     }
+
+    public void setIndividualLoyaltyRate(long userId, java.math.BigDecimal rate) {
+        String sql = "UPDATE users SET individual_loyalty_rate = ? WHERE id = ?";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setBigDecimal(1, rate);
+            stmt.setLong(2, userId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public java.math.BigDecimal getIndividualLoyaltyRate(long userId) {
+        String sql = "SELECT individual_loyalty_rate FROM users WHERE id = ?";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getBigDecimal("individual_loyalty_rate");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
 }

@@ -108,11 +108,17 @@ public class RegisterController {
 
         try {
             Connection conn = DbAdapter.getConnection();
-            String query = "INSERT INTO users (username, password_hash, role) VALUES (?, ?, ?)";
+            String query = "INSERT INTO users (username, password_hash, role, individual_loyalty_rate) VALUES (?, ?, ?, ?)";
             PreparedStatement stmt = conn.prepareStatement(query);
             stmt.setString(1, username);
             stmt.setString(2, hashPassword(password)); // Hash this!
             stmt.setString(3, role);
+
+            if ("customer".equalsIgnoreCase(role)) {
+                stmt.setBigDecimal(4, java.math.BigDecimal.ZERO);
+            } else {
+                stmt.setBigDecimal(4, null);
+            }
 
             stmt.executeUpdate();
 

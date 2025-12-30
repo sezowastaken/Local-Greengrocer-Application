@@ -14,6 +14,8 @@ import javafx.scene.text.Text;
 
 import java.io.IOException;
 import java.util.List;
+import com.group25.greengrocer.dao.UserDao;
+import com.group25.greengrocer.service.LoyaltyService;
 
 public class CustomerController {
 
@@ -33,6 +35,8 @@ public class CustomerController {
     private Label cartTotalLabel;
 
     private final ProductDao productDao = new ProductDao();
+    private final UserDao userDao = new UserDao();
+    private final LoyaltyService loyaltyService = new LoyaltyService();
     private final List<CartItem> cart = new java.util.ArrayList<>();
 
     private static class CartItem {
@@ -84,11 +88,24 @@ public class CustomerController {
             for (CartItem ci : cart)
                 subtotal += ci.getTotalPrice();
 
+            // Loyalty Logic
+            java.math.BigDecimal individualRate = userDao.getIndividualLoyaltyRate(customerId);
+            double discountRate = 0.0;
+            if (individualRate != null) {
+                discountRate = individualRate.doubleValue();
+            } else {
+                discountRate = loyaltyService.getLoyaltyDiscountRate();
+            }
+
+            double discountAmount = subtotal * discountRate;
+            double discountedSubtotal = subtotal - discountAmount;
+
             order.setSubtotal(subtotal);
-            order.setVatRate(18.0); // Example VAT
-            order.setVatTotal(subtotal * 0.18);
-            order.setTotal(subtotal + order.getVatTotal());
-            order.setDiscountTotal(0); // If coupons implemented later
+            order.setDiscountTotal(discountAmount);
+
+            order.setVatRate(18.0);
+            order.setVatTotal(discountedSubtotal * 0.18);
+            order.setTotal(discountedSubtotal + order.getVatTotal());
 
             // Build Items
             java.util.List<com.group25.greengrocer.model.OrderItem> orderItems = new java.util.ArrayList<>();
