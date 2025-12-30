@@ -30,6 +30,11 @@ public class LoginController {
     private Label errorLabel;
 
     @FXML
+    public void initialize() {
+        // Migration removed per user request.
+    }
+
+    @FXML
     private void handleLogin() {
 
         String username = usernameField.getText();

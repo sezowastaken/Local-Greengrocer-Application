@@ -62,18 +62,86 @@ public class UserDao {
     }
 
     public void addCarrier(String username, String password) {
-        String query = "INSERT INTO users (username, password_hash, role) VALUES (?, ?, 'carrier')";
+        String query = "INSERT INTO users (username, password_hash, role, status) VALUES (?, ?, 'carrier', 'APPROVED')";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, username);
+            stmt.setString(2, hashPassword(password));
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void addCarrier(String username, String password, byte[] licenseFront, byte[] licenseBack)
+            throws SQLException {
+        String query = "INSERT INTO users (username, password_hash, role, license_front, license_back, status) VALUES (?, ?, 'carrier', ?, ?, 'PENDING')";
 
         try (Connection conn = DbAdapter.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
 
             stmt.setString(1, username);
             stmt.setString(2, hashPassword(password));
+            stmt.setBytes(3, licenseFront);
+            stmt.setBytes(4, licenseBack);
             stmt.executeUpdate();
 
+        }
+    }
+
+    public java.util.List<Carrier> getPendingCarriers() {
+        java.util.List<Carrier> carriers = new ArrayList<>();
+        String query = "SELECT id, username, password_hash FROM users WHERE role = 'carrier' AND status = 'PENDING'";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                carriers.add(new Carrier(
+                        rs.getInt("id"),
+                        rs.getString("username"),
+                        rs.getString("password_hash")));
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        return carriers;
+    }
+
+    public boolean updateCarrierStatus(int userId, String status) {
+        String query = "UPDATE users SET status = ? WHERE id = ?";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, status);
+            stmt.setInt(2, userId);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public Carrier getCarrierWithLicenses(int userId) {
+        String query = "SELECT id, username, password_hash, license_front, license_back FROM users WHERE id = ?";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    Carrier carrier = new Carrier(
+                            rs.getInt("id"),
+                            rs.getString("username"),
+                            rs.getString("password_hash"));
+                    carrier.setLicenseFront(rs.getBytes("license_front"));
+                    carrier.setLicenseBack(rs.getBytes("license_back"));
+                    return carrier;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public void deleteCarrier(int userId) {
