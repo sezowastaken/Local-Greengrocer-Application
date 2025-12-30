@@ -87,7 +87,9 @@ public class CouponDao {
     }
 
     public Coupon findByCode(String code) throws SQLException {
-        String sql = "SELECT * FROM coupons WHERE code = ? AND is_active = 1";
+        String sql = "SELECT * FROM coupons WHERE code = ? AND is_active = 1 " +
+                "AND (valid_from IS NULL OR valid_from <= NOW()) " +
+                "AND (valid_until IS NULL OR valid_until >= NOW())";
 
         try (Connection conn = DbAdapter.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {

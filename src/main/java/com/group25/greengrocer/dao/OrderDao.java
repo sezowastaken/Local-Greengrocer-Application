@@ -85,6 +85,8 @@ public class OrderDao {
         String query = "SELECT p.name, SUM(oi.quantity) as total_qty " +
                 "FROM order_items oi " +
                 "JOIN products p ON oi.product_id = p.id " +
+                "JOIN orders o ON oi.order_id = o.id " +
+                "WHERE o.status = 'DELIVERED' " +
                 "GROUP BY p.name " +
                 "ORDER BY total_qty DESC LIMIT 5";
 

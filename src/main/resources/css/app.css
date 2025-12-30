@@ -94,6 +94,23 @@
     -fx-text-fill: #28a745;
 }
 
+/* Status Badges */
+.status-badge {
+    -fx-font-weight: bold;
+    -fx-padding: 5px 10px;
+    -fx-background-radius: 15px;
+    -fx-text-fill: white;
+    -fx-alignment: center;
+}
+
+.status-active {
+    -fx-background-color: #27ae60;
+}
+
+.status-passive {
+    -fx-background-color: #e74c3c;
+}
+
 /* ComboBox Styling */
 .combo-box {
     -fx-background-color: white;
@@ -114,8 +131,8 @@
 
 .combo-box .list-cell:filled:selected,
 .combo-box .list-cell:filled:hover {
-    -fx-background-color: #e8f5e9;
-    -fx-text-fill: #4CAF50;
+    -fx-background-color: #e3f2fd;
+    -fx-text-fill: #1976D2;
 }
 
 /* Product Card Styling */
@@ -278,9 +295,65 @@
     -fx-text-fill: white;
 }
 
+.custom-alert.success-alert .dialog-pane .button-bar .button:hover {
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.1), 3, 0, 0, 1);
+}
+
+.custom-alert.info-alert .dialog-pane {
+    -fx-border-color: #3498db;
+    -fx-border-width: 0 0 0 5px;
+    /* Left blue accent */
+}
+
+.custom-alert.info-alert .dialog-pane .button-bar .button {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+}
+
+.custom-alert.confirmation-alert .dialog-pane {
+    -fx-border-color: #f39c12;
+    -fx-border-width: 0 0 0 5px;
+}
+
+.custom-alert.confirmation-alert .dialog-pane .button-bar .button {
+    -fx-background-color: #f39c12;
+    -fx-text-fill: white;
+}
+
 .custom-alert .dialog-pane .button-bar .button:hover {
     -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.1), 3, 0, 0, 1);
 }
+
+/* Notification Toast Styles */
+.notification-item {
+    -fx-background-color: white;
+    -fx-padding: 10px 15px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.1), 5, 0, 0, 0);
+    -fx-background-radius: 5px;
+    -fx-border-radius: 5px;
+    -fx-min-width: 250px;
+}
+
+.notification-message {
+    -fx-font-size: 14px;
+    -fx-text-fill: #333;
+}
+
+.notification-success {
+    -fx-border-color: #27ae60;
+    -fx-border-width: 0 0 0 5px;
+}
+
+.notification-error {
+    -fx-border-color: #e74c3c;
+    -fx-border-width: 0 0 0 5px;
+}
+
+.notification-info {
+    -fx-border-color: #3498db;
+    -fx-border-width: 0 0 0 5px;
+}
+
 
 /* Image Styling */
 .product-image {

@@ -9,6 +9,7 @@ import com.group25.greengrocer.model.Order;
 import com.group25.greengrocer.model.Product;
 import com.group25.greengrocer.model.Carrier;
 import com.group25.greengrocer.model.User;
+import com.group25.greengrocer.util.NotificationUtil;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.chart.BarChart;
@@ -249,6 +250,8 @@ public class OwnerController {
     @FXML
     private TextField txtMinOrder;
     @FXML
+    private DatePicker dpValidFrom;
+    @FXML
     private DatePicker dpValidUntil;
 
     // --- Panel References for Sidebar Navigation ---
@@ -398,7 +401,7 @@ public class OwnerController {
         // Role Guard: STRICT access control for Owner
         User currentUser = com.group25.greengrocer.util.Session.getCurrentUser();
         if (currentUser == null || !"owner".equalsIgnoreCase(currentUser.getRole())) {
-            showAlert("Access Denied", "You do not have permission to view this page.");
+            NotificationUtil.showError("Access Denied", "You do not have permission to view this page.");
             // Close the current stage to prevent unauthorized access
             if (pnlOverview.getScene() != null && pnlOverview.getScene().getWindow() != null) {
                 ((javafx.stage.Stage) pnlOverview.getScene().getWindow()).close();
@@ -427,6 +430,7 @@ public class OwnerController {
         setupOrderTable();
         setupMessageTable();
         setupCouponTable();
+        setupDatePickerValidation();
 
         // Initialize Combos
         categoryMap = productDao.getCategories();
@@ -698,7 +702,7 @@ public class OwnerController {
             stage.getScene().setRoot(root);
         } catch (java.io.IOException e) {
             e.printStackTrace();
-            showAlert("Error", "Could not load login screen.");
+            NotificationUtil.showError("Error", "Could not load login screen.");
         }
     }
 
@@ -727,7 +731,81 @@ public class OwnerController {
         colCouponValue.setCellValueFactory(new PropertyValueFactory<>("discountValue"));
         colCouponMin.setCellValueFactory(new PropertyValueFactory<>("minOrderTotal"));
         colCouponValid.setCellValueFactory(new PropertyValueFactory<>("validUntil"));
+
+        // Custom Cell Factory for Active Status Badge
         colCouponActive.setCellValueFactory(new PropertyValueFactory<>("active"));
+        colCouponActive.setCellFactory(
+                column -> new javafx.scene.control.TableCell<com.group25.greengrocer.model.Coupon, Boolean>() {
+                    @Override
+                    protected void updateItem(Boolean isActive, boolean empty) {
+                        super.updateItem(isActive, empty);
+                        if (empty || isActive == null) {
+                            setGraphic(null);
+                            setText(null);
+                        } else {
+                            javafx.scene.control.Label lblStatus = new javafx.scene.control.Label(
+                                    isActive ? "ACTIVE" : "PASSIVE");
+                            lblStatus.getStyleClass().add("status-badge");
+                            lblStatus.getStyleClass().add(isActive ? "status-active" : "status-passive");
+                            lblStatus.setMinWidth(80);
+                            lblStatus.setAlignment(javafx.geometry.Pos.CENTER);
+                            setGraphic(lblStatus);
+                            setText(null);
+                        }
+                    }
+                });
+    }
+
+    private void setupDatePickerValidation() {
+        // Disable past dates in Valid From
+        dpValidFrom.setDayCellFactory(picker -> new javafx.scene.control.DateCell() {
+            @Override
+            public void updateItem(java.time.LocalDate date, boolean empty) {
+                super.updateItem(date, empty);
+                if (date.isBefore(java.time.LocalDate.now())) {
+                    setDisable(true);
+                    setStyle("-fx-background-color: #ffc0cb;"); // Optional: pink background
+                }
+            }
+        });
+
+        // Initialize Valid From to today (default)
+        dpValidFrom.setValue(java.time.LocalDate.now());
+
+        // Update Valid Until restrictions based on Valid From selection
+        dpValidFrom.valueProperty().addListener((observable, oldDate, newDate) -> {
+            if (newDate != null) {
+                dpValidUntil.setDayCellFactory(picker -> new javafx.scene.control.DateCell() {
+                    @Override
+                    public void updateItem(java.time.LocalDate date, boolean empty) {
+                        super.updateItem(date, empty);
+                        // Disable dates before the selected Valid From date
+                        if (date.isBefore(newDate)) {
+                            setDisable(true);
+                            setStyle("-fx-background-color: #ffc0cb;");
+                        }
+                    }
+                });
+
+                // If current validUntil is before new validFrom, clear it
+                if (dpValidUntil.getValue() != null && dpValidUntil.getValue().isBefore(newDate)) {
+                    dpValidUntil.setValue(null);
+                }
+            }
+        });
+
+        // Initial setup for Valid Until (defaults to check against today if From is
+        // null)
+        dpValidUntil.setDayCellFactory(picker -> new javafx.scene.control.DateCell() {
+            @Override
+            public void updateItem(java.time.LocalDate date, boolean empty) {
+                super.updateItem(date, empty);
+                if (date.isBefore(java.time.LocalDate.now())) {
+                    setDisable(true);
+                    setStyle("-fx-background-color: #ffc0cb;");
+                }
+            }
+        });
     }
 
     @FXML
@@ -735,13 +813,13 @@ public class OwnerController {
         try {
             double rate = Double.parseDouble(txtLoyaltyRate.getText());
             if (rate < 0 || rate > 1) {
-                showAlert("Invalid Input", "Rate must be between 0.0 and 1.0");
+                NotificationUtil.showError("Invalid Input", "Rate must be between 0.0 and 1.0");
                 return;
             }
             loyaltyService.setLoyaltyDiscountRate(rate);
-            showAlert("Success", "Loyalty discount rate updated.");
+            NotificationUtil.showSuccess("Success", "Loyalty discount rate updated.");
         } catch (NumberFormatException e) {
-            showAlert("Invalid Input", "Please enter a valid number.");
+            NotificationUtil.showError("Invalid Input", "Please enter a valid number.");
         }
     }
 
@@ -754,7 +832,18 @@ public class OwnerController {
             double minOrder = Double.parseDouble(txtMinOrder.getText());
 
             if (code.isEmpty() || type == null) {
-                showAlert("Invalid Input", "Code and Type are required.");
+                NotificationUtil.showError("Invalid Input", "Code and Type are required.");
+                return;
+            }
+
+            java.time.LocalDateTime validFrom = java.time.LocalDateTime.now();
+            if (dpValidFrom.getValue() != null) {
+                validFrom = dpValidFrom.getValue().atStartOfDay();
+            }
+
+            // Validation: Start date cannot be in the past (allow today)
+            if (validFrom.toLocalDate().isBefore(java.time.LocalDate.now())) {
+                NotificationUtil.showError("Invalid Date", "Start date cannot be in the past.");
                 return;
             }
 
@@ -763,9 +852,15 @@ public class OwnerController {
                 validUntil = dpValidUntil.getValue().atStartOfDay();
             }
 
+            // Validation: End date > Start date
+            if (validUntil != null && !validUntil.isAfter(validFrom)) {
+                NotificationUtil.showError("Invalid Date", "End date must be after start date.");
+                return;
+            }
+
             com.group25.greengrocer.model.Coupon coupon = new com.group25.greengrocer.model.Coupon(
                     0, code, type, value, minOrder,
-                    java.time.LocalDateTime.now(), // Valid from now
+                    validFrom,
                     validUntil,
                     true);
 
@@ -776,10 +871,11 @@ public class OwnerController {
             txtCouponCode.clear();
             txtDiscountValue.clear();
             txtMinOrder.clear();
+            dpValidFrom.setValue(null);
             dpValidUntil.setValue(null);
 
         } catch (NumberFormatException e) {
-            showAlert("Invalid Input", "Check numeric fields.");
+            NotificationUtil.showError("Invalid Input", "Check numeric fields.");
         }
     }
 
@@ -1234,8 +1330,11 @@ public class OwnerController {
     private void handleUploadFront() {
         File file = chooseImageFile();
         if (file != null) {
-            manualLicenseFrontBytes = readFileToBytes(file);
-            imgLicenseFront.setImage(new Image(file.toURI().toString()));
+            // limit check or process
+            manualLicenseFrontBytes = com.group25.greengrocer.util.ImageUtil.compressAndResize(file);
+            if (manualLicenseFrontBytes != null) {
+                imgLicenseFront.setImage(new Image(new java.io.ByteArrayInputStream(manualLicenseFrontBytes)));
+            }
         }
     }
 
@@ -1243,8 +1342,10 @@ public class OwnerController {
     private void handleUploadBack() {
         File file = chooseImageFile();
         if (file != null) {
-            manualLicenseBackBytes = readFileToBytes(file);
-            imgLicenseBack.setImage(new Image(file.toURI().toString()));
+            manualLicenseBackBytes = com.group25.greengrocer.util.ImageUtil.compressAndResize(file);
+            if (manualLicenseBackBytes != null) {
+                imgLicenseBack.setImage(new Image(new java.io.ByteArrayInputStream(manualLicenseBackBytes)));
+            }
         }
     }
 
@@ -1256,24 +1357,13 @@ public class OwnerController {
         return fileChooser.showOpenDialog(null);
     }
 
-    private byte[] readFileToBytes(File file) {
-        try (FileInputStream fis = new FileInputStream(file)) {
-            byte[] data = new byte[(int) file.length()];
-            fis.read(data);
-            return data;
-        } catch (java.io.IOException e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
     @FXML
     private void handleAddCarrier() {
         String user = txtCarrUsername.getText();
         String pass = txtCarrPassword.getText();
 
         if (user.isEmpty()) {
-            showAlert("Input Error", "Username is required.");
+            NotificationUtil.showError("Input Error", "Username is required.");
             return;
         }
 
@@ -1311,7 +1401,7 @@ public class OwnerController {
             // for now or minimal update.
             // Ideally we'd overwrite.
 
-            showAlert("Success", "Carrier updated (Password/Basic info).");
+            NotificationUtil.showSuccess("Success", "Carrier updated (Password/Basic info).");
             handleClearCarrierForm();
             loadCarriers();
             return;
@@ -1319,12 +1409,12 @@ public class OwnerController {
 
         // ADD MODE
         if (pass.isEmpty()) {
-            showAlert("Input Error", "Password required for new carrier.");
+            NotificationUtil.showError("Input Error", "Password required for new carrier.");
             return;
         }
 
         if (manualLicenseFrontBytes == null || manualLicenseBackBytes == null) {
-            showAlert("Input Error", "Both license photos are required.");
+            NotificationUtil.showError("Input Error", "Both license photos are required.");
             return;
         }
 
@@ -1344,12 +1434,12 @@ public class OwnerController {
             }
 
             handleClearCarrierForm();
-            showAlert("Success", "Carrier hired and approved successfully.");
+            NotificationUtil.showSuccess("Success", "Carrier hired and approved successfully.");
             loadCarriers(); // Refresh active list
 
         } catch (java.sql.SQLException e) {
             e.printStackTrace();
-            showAlert("Error", "Database error: " + e.getMessage());
+            NotificationUtil.showError("Error", "Database error: " + e.getMessage());
         }
     }
 
@@ -1435,7 +1525,7 @@ public class OwnerController {
             loadPendingCarriers();
             dialog.setResult(ButtonType.OK);
             dialog.close();
-            showAlert("Success", "Carrier approved successfully.");
+            NotificationUtil.showSuccess("Success", "Carrier approved successfully.");
         });
 
         Button btnReject = new Button(
@@ -1447,7 +1537,7 @@ public class OwnerController {
             loadPendingCarriers();
             dialog.setResult(ButtonType.OK);
             dialog.close();
-            showAlert("Rejected", "Carrier application rejected and removed.");
+            NotificationUtil.showInfo("Rejected", "Carrier application rejected and removed.");
         });
 
         actions.getChildren().addAll(btnApprove, btnReject);
@@ -1474,10 +1564,11 @@ public class OwnerController {
     // Updated/Renamed Methods to be called from TableCell
     private void handleFireCarrier(User selected) {
         if (selected != null) {
-            Alert alert = new Alert(Alert.AlertType.CONFIRMATION,
-                    "Are you sure you want to fire " + selected.getUsername() + "?", ButtonType.YES, ButtonType.NO);
-            alert.showAndWait();
-            if (alert.getResult() == ButtonType.YES) {
+            boolean confirmed = NotificationUtil.showConfirmation(
+                    "Confirmation",
+                    "Are you sure you want to fire " + selected.getUsername() + "?");
+
+            if (confirmed) {
                 userDao.deleteCarrier(selected.getId());
                 loadCarriers();
             }
@@ -1850,7 +1941,7 @@ public class OwnerController {
             itemsTable.setItems(FXCollections.observableArrayList(items));
         } catch (Exception e) {
             e.printStackTrace();
-            showAlert("Error", "Could not load order items: " + e.getMessage());
+            NotificationUtil.showError("Error", "Could not load order items: " + e.getMessage());
         }
 
         itemsCard.getChildren().addAll(itemsHeader, new Separator(), itemsTable);
@@ -1906,7 +1997,7 @@ public class OwnerController {
             loadMessages();
             txtReply.clear();
         } else {
-            showAlert("Error", "Select a message and enter reply.");
+            NotificationUtil.showError("Error", "Select a message and enter reply.");
         }
     }
 
@@ -1936,14 +2027,6 @@ public class OwnerController {
     @FXML
     private void handleRefresh() {
         loadAllData();
-    }
-
-    private void showAlert(String title, String content) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(content);
-        alert.showAndWait();
     }
 
     // ================== PROFILE PANEL METHODS ==================

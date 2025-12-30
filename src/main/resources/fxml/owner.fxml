@@ -470,6 +470,7 @@
                         </HBox>
                         
                         <TextField fx:id="txtMinOrder" promptText="Min Order Amount" styleClass="text-field"/>
+                        <DatePicker fx:id="dpValidFrom" promptText="Valid From" maxWidth="Infinity"/>
                         <DatePicker fx:id="dpValidUntil" promptText="Valid Until" maxWidth="Infinity"/>
                         
                         <Button text="Create Coupon" onAction="#handleAddCoupon" styleClass="button-primary" maxWidth="Infinity"/>
