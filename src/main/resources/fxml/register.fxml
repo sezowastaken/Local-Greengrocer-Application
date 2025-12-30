@@ -36,7 +36,16 @@
         
         <Label fx:id="messageLabel" styleClass="error-label"/>
         
-        <Hyperlink text="Already have an account? Login" onAction="#handleGoToLogin" style="-fx-text-fill: #4CAF50;"/>
+        <HyperLink text="Already have an account? Login" onAction="#handleGoToLogin" style="-fx-text-fill: #4CAF50;"/>
+        
+        <Separator style="-fx-padding: 10 0;"/>
+        
+        <VBox spacing="8" alignment="CENTER" style="-fx-padding: 10 0;">
+            <Label text="Want to become a delivery carrier?" style="-fx-text-fill: #666; -fx-font-size: 12px;"/>
+            <Button text="🚚 Apply as Carrier" onAction="#handleApplyAsCarrier" 
+                    styleClass="button-secondary" maxWidth="200"
+                    style="-fx-background-color: #FF9800; -fx-text-fill: white;"/>
+        </VBox>
     </VBox>
     
 </StackPane>

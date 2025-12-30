@@ -104,17 +104,69 @@ public class OwnerController {
     @FXML
     private TextField txtCarrPassword;
 
-    // --- Order Tab ---
+    // --- Order Tab - Categorized Tables ---
     @FXML
-    private TableView<Order> orderTable;
+    private TableView<Order> pendingOrdersTable;
     @FXML
-    private TableColumn<Order, Integer> colOrderId;
+    private TableColumn<Order, Long> colPendingOrderId;
     @FXML
-    private TableColumn<Order, String> colOrderStatus;
+    private TableColumn<Order, String> colPendingCustomer;
     @FXML
-    private TableColumn<Order, Double> colOrderTotal;
+    private TableColumn<Order, String> colPendingStatus;
     @FXML
-    private TableColumn<Order, String> colOrderDate;
+    private TableColumn<Order, Double> colPendingTotal;
+    @FXML
+    private TableColumn<Order, String> colPendingDate;
+    @FXML
+    private TableColumn<Order, Void> colPendingAction;
+
+    @FXML
+    private TableView<Order> deliveryOrdersTable;
+    @FXML
+    private TableColumn<Order, Long> colDeliveryOrderId;
+    @FXML
+    private TableColumn<Order, String> colDeliveryCustomer;
+    @FXML
+    private TableColumn<Order, String> colDeliveryCarrier;
+    @FXML
+    private TableColumn<Order, String> colDeliveryStatus;
+    @FXML
+    private TableColumn<Order, Double> colDeliveryTotal;
+    @FXML
+    private TableColumn<Order, String> colDeliveryDate;
+    @FXML
+    private TableColumn<Order, Void> colDeliveryAction;
+
+    @FXML
+    private TableView<Order> completedOrdersTable;
+    @FXML
+    private TableColumn<Order, Long> colCompletedOrderId;
+    @FXML
+    private TableColumn<Order, String> colCompletedCustomer;
+    @FXML
+    private TableColumn<Order, String> colCompletedCarrier;
+    @FXML
+    private TableColumn<Order, String> colCompletedStatus;
+    @FXML
+    private TableColumn<Order, Double> colCompletedTotal;
+    @FXML
+    private TableColumn<Order, String> colCompletedDate;
+    @FXML
+    private TableColumn<Order, Void> colCompletedAction;
+
+    // Order Tab Navigation
+    @FXML
+    private Button btnOrderPending;
+    @FXML
+    private Button btnOrderDelivery;
+    @FXML
+    private Button btnOrderCompleted;
+    @FXML
+    private StackPane orderPendingView;
+    @FXML
+    private StackPane orderDeliveryView;
+    @FXML
+    private StackPane orderCompletedView;
 
     // --- Message Tab ---
     @FXML
@@ -861,7 +913,7 @@ public class OwnerController {
         Label priceLbl = new Label(String.format("$%.2f", product.getPrice()));
         priceLbl.setStyle("-fx-text-fill: #2e7d32; -fx-font-weight: bold; -fx-font-size: 14px;");
         Label stockLbl = new Label("Stock: " + product.getStock() + " " + (product.isPiece() ? "Pcs" : "Kg"));
-        stockLbl.setStyle("-fx-font-size: 12px;");
+        stockLbl.setStyle("-fx-font-size: 12px; -fx-text-fill: #000000;");
         Label thresholdLbl = new Label("Threshold: " + product.getThreshold());
         thresholdLbl.setStyle("-fx-text-fill: #e67e22; -fx-font-size: 11px;");
 
@@ -1109,14 +1161,356 @@ public class OwnerController {
 
     // --- Order Logic ---
     private void setupOrderTable() {
-        colOrderId.setCellValueFactory(new PropertyValueFactory<>("id"));
-        colOrderStatus.setCellValueFactory(new PropertyValueFactory<>("status"));
-        colOrderTotal.setCellValueFactory(new PropertyValueFactory<>("totalAmount"));
-        colOrderDate.setCellValueFactory(new PropertyValueFactory<>("orderTime"));
+        setupOrderTables();
+    }
+
+    private void setupOrderTables() {
+        // Pending Orders Table
+        colPendingOrderId.setCellValueFactory(
+                cellData -> new javafx.beans.property.SimpleLongProperty(cellData.getValue().getId()).asObject());
+        colPendingCustomer.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(
+                "Customer #" + cellData.getValue().getCustomerId()));
+        colPendingStatus.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(
+                cellData.getValue().getStatus() != null ? cellData.getValue().getStatus().toString() : "N/A"));
+        colPendingTotal.setCellValueFactory(
+                cellData -> new javafx.beans.property.SimpleDoubleProperty(cellData.getValue().getTotal()).asObject());
+        colPendingDate.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(
+                cellData.getValue().getOrderTime() != null ? cellData.getValue().getOrderTime().toString() : "N/A"));
+
+        // Action column for Pending
+        colPendingAction.setCellFactory(param -> new TableCell<>() {
+            private final Button detailsBtn = new Button("Details");
+            {
+                detailsBtn.setStyle(
+                        "-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-size: 11px; -fx-padding: 5px 10px; -fx-background-radius: 3px;");
+                detailsBtn.setOnAction(event -> {
+                    Order order = getTableView().getItems().get(getIndex());
+                    handleViewOrderDetails(order);
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : detailsBtn);
+            }
+        });
+
+        // Delivery Orders Table
+        colDeliveryOrderId.setCellValueFactory(
+                cellData -> new javafx.beans.property.SimpleLongProperty(cellData.getValue().getId()).asObject());
+        colDeliveryCustomer.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(
+                "Customer #" + cellData.getValue().getCustomerId()));
+        colDeliveryCarrier.setCellValueFactory(cellData -> {
+            Long carrierId = cellData.getValue().getCarrierId();
+            String carrierName = carrierId != null ? getUsernameById(carrierId) : "Unassigned";
+            return new javafx.beans.property.SimpleStringProperty(carrierName);
+        });
+        colDeliveryStatus.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(
+                cellData.getValue().getStatus() != null ? cellData.getValue().getStatus().toString() : "N/A"));
+        colDeliveryTotal.setCellValueFactory(
+                cellData -> new javafx.beans.property.SimpleDoubleProperty(cellData.getValue().getTotal()).asObject());
+        colDeliveryDate.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(
+                cellData.getValue().getOrderTime() != null ? cellData.getValue().getOrderTime().toString() : "N/A"));
+
+        // Action column for Delivery
+        colDeliveryAction.setCellFactory(param -> new TableCell<>() {
+            private final Button detailsBtn = new Button("Details");
+            {
+                detailsBtn.setStyle(
+                        "-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-size: 11px; -fx-padding: 5px 10px; -fx-background-radius: 3px;");
+                detailsBtn.setOnAction(event -> {
+                    Order order = getTableView().getItems().get(getIndex());
+                    handleViewOrderDetails(order);
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : detailsBtn);
+            }
+        });
+
+        // Completed Orders Table
+        colCompletedOrderId.setCellValueFactory(
+                cellData -> new javafx.beans.property.SimpleLongProperty(cellData.getValue().getId()).asObject());
+        colCompletedCustomer.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(
+                "Customer #" + cellData.getValue().getCustomerId()));
+        colCompletedCarrier.setCellValueFactory(cellData -> {
+            Long carrierId = cellData.getValue().getCarrierId();
+            String carrierName = carrierId != null ? getUsernameById(carrierId) : "Unassigned";
+            return new javafx.beans.property.SimpleStringProperty(carrierName);
+        });
+        colCompletedStatus.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(
+                cellData.getValue().getStatus() != null ? cellData.getValue().getStatus().toString() : "N/A"));
+        colCompletedTotal.setCellValueFactory(
+                cellData -> new javafx.beans.property.SimpleDoubleProperty(cellData.getValue().getTotal()).asObject());
+        colCompletedDate.setCellValueFactory(cellData -> {
+            java.time.LocalDateTime date = null;
+            if (cellData.getValue().getDeliveredTime() != null) {
+                date = cellData.getValue().getDeliveredTime();
+            } else if (cellData.getValue().getCancelledTime() != null) {
+                date = cellData.getValue().getCancelledTime();
+            }
+            return new javafx.beans.property.SimpleStringProperty(date != null ? date.toString() : "N/A");
+        });
+
+        // Action column for Completed
+        colCompletedAction.setCellFactory(param -> new TableCell<>() {
+            private final Button detailsBtn = new Button("Details");
+            {
+                detailsBtn.setStyle(
+                        "-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-size: 11px; -fx-padding: 5px 10px; -fx-background-radius: 3px;");
+                detailsBtn.setOnAction(event -> {
+                    Order order = getTableView().getItems().get(getIndex());
+                    handleViewOrderDetails(order);
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : detailsBtn);
+            }
+        });
     }
 
     private void loadOrders() {
-        orderTable.setItems(FXCollections.observableArrayList(orderDao.getAllOrders()));
+        loadOrdersByStatus();
+    }
+
+    private void loadOrdersByStatus() {
+        java.util.List<Order> allOrders = orderDao.getAllOrders();
+
+        java.util.List<Order> pendingOrders = new ArrayList<>();
+        java.util.List<Order> deliveryOrders = new ArrayList<>();
+        java.util.List<Order> completedOrders = new ArrayList<>();
+
+        for (Order order : allOrders) {
+            if (order.getStatus() == com.group25.greengrocer.model.OrderStatus.PLACED) {
+                pendingOrders.add(order);
+            } else if (order.getStatus() == com.group25.greengrocer.model.OrderStatus.ASSIGNED) {
+                deliveryOrders.add(order);
+            } else if (order.getStatus() == com.group25.greengrocer.model.OrderStatus.DELIVERED ||
+                    order.getStatus() == com.group25.greengrocer.model.OrderStatus.CANCELLED) {
+                completedOrders.add(order);
+            }
+        }
+
+        pendingOrdersTable.setItems(FXCollections.observableArrayList(pendingOrders));
+        deliveryOrdersTable.setItems(FXCollections.observableArrayList(deliveryOrders));
+        completedOrdersTable.setItems(FXCollections.observableArrayList(completedOrders));
+    }
+
+    private String getUsernameById(long userId) {
+        try {
+            com.group25.greengrocer.dao.UserDao.UserProfile userProfile = userDao.findById(userId);
+            return userProfile != null ? userProfile.getUsername() : "Unknown";
+        } catch (Exception e) {
+            return "Unknown";
+        }
+    }
+
+    private void handleViewOrderDetails(Order order) {
+        createOrderDetailsModal(order);
+    }
+
+    @FXML
+    private void handleOrderTabClick(javafx.event.ActionEvent event) {
+        // Hide all views
+        orderPendingView.setVisible(false);
+        orderPendingView.setManaged(false);
+        orderDeliveryView.setVisible(false);
+        orderDeliveryView.setManaged(false);
+        orderCompletedView.setVisible(false);
+        orderCompletedView.setManaged(false);
+
+        // Remove active styling from all buttons
+        btnOrderPending.getStyleClass().remove("filter-btn-active");
+        btnOrderDelivery.getStyleClass().remove("filter-btn-active");
+        btnOrderCompleted.getStyleClass().remove("filter-btn-active");
+
+        // Show selected view and activate button
+        if (event.getSource() == btnOrderPending) {
+            orderPendingView.setVisible(true);
+            orderPendingView.setManaged(true);
+            btnOrderPending.getStyleClass().add("filter-btn-active");
+        } else if (event.getSource() == btnOrderDelivery) {
+            orderDeliveryView.setVisible(true);
+            orderDeliveryView.setManaged(true);
+            btnOrderDelivery.getStyleClass().add("filter-btn-active");
+        } else if (event.getSource() == btnOrderCompleted) {
+            orderCompletedView.setVisible(true);
+            orderCompletedView.setManaged(true);
+            btnOrderCompleted.getStyleClass().add("filter-btn-active");
+        }
+    }
+
+    private void createOrderDetailsModal(Order order) {
+        // Create a new stage for the modal
+        javafx.stage.Stage modalStage = new javafx.stage.Stage();
+        modalStage.initModality(javafx.stage.Modality.APPLICATION_MODAL);
+        modalStage.setTitle("Order Details - Order #" + order.getId());
+
+        // Get screen dimensions for responsive sizing
+        javafx.stage.Screen screen = javafx.stage.Screen.getPrimary();
+        javafx.geometry.Rectangle2D bounds = screen.getVisualBounds();
+        double modalWidth = Math.min(700, bounds.getWidth() * 0.6);
+        double modalHeight = Math.min(700, bounds.getHeight() * 0.8);
+
+        // Main container
+        VBox container = new VBox(15);
+        container.setPadding(new javafx.geometry.Insets(20));
+        container.setStyle("-fx-background-color: #f4f6f9;");
+
+        // Header
+        Label headerLabel = new Label("Order #" + order.getId() + " Details");
+        headerLabel.setStyle("-fx-font-size: 20px; -fx-font-weight: bold; -fx-text-fill: #2e7d32;");
+        headerLabel.setWrapText(true);
+
+        // Order Info Card
+        VBox infoCard = new VBox(10);
+        infoCard.setStyle(
+                "-fx-background-color: white; -fx-padding: 15px; -fx-background-radius: 5px; -fx-border-radius: 5px; -fx-border-color: #ddd;");
+
+        GridPane infoGrid = new GridPane();
+        infoGrid.setHgap(15);
+        infoGrid.setVgap(10);
+
+        // Make GridPane responsive
+        ColumnConstraints col1 = new ColumnConstraints();
+        col1.setHgrow(Priority.NEVER);
+        col1.setMinWidth(javafx.scene.layout.Region.USE_PREF_SIZE);
+        ColumnConstraints col2 = new ColumnConstraints();
+        col2.setHgrow(Priority.ALWAYS);
+        infoGrid.getColumnConstraints().addAll(col1, col2);
+
+        // Labels with wrapping
+        Label customerKeyLabel = new Label("Customer:");
+        customerKeyLabel.setStyle("-fx-font-weight: bold;");
+        infoGrid.add(customerKeyLabel, 0, 0);
+        Label customerValueLabel = new Label(getUsernameById(order.getCustomerId()));
+        customerValueLabel.setWrapText(true);
+        infoGrid.add(customerValueLabel, 1, 0);
+
+        Label statusKeyLabel = new Label("Status:");
+        statusKeyLabel.setStyle("-fx-font-weight: bold;");
+        infoGrid.add(statusKeyLabel, 0, 1);
+        Label statusLabel = new Label(order.getStatus() != null ? order.getStatus().toString() : "N/A");
+        statusLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #3498db;");
+        statusLabel.setWrapText(true);
+        infoGrid.add(statusLabel, 1, 1);
+
+        int gridRow = 2;
+        if (order.getCarrierId() != null) {
+            Label carrierKeyLabel = new Label("Carrier:");
+            carrierKeyLabel.setStyle("-fx-font-weight: bold;");
+            infoGrid.add(carrierKeyLabel, 0, gridRow);
+            Label carrierValueLabel = new Label(getUsernameById(order.getCarrierId()));
+            carrierValueLabel.setWrapText(true);
+            infoGrid.add(carrierValueLabel, 1, gridRow);
+            gridRow++;
+        }
+
+        Label dateKeyLabel = new Label("Order Date:");
+        dateKeyLabel.setStyle("-fx-font-weight: bold;");
+        infoGrid.add(dateKeyLabel, 0, gridRow);
+        Label dateValueLabel = new Label(order.getOrderTime() != null ? order.getOrderTime().toString() : "N/A");
+        dateValueLabel.setWrapText(true);
+        infoGrid.add(dateValueLabel, 1, gridRow);
+        gridRow++;
+
+        Label totalKeyLabel = new Label("Total Amount:");
+        totalKeyLabel.setStyle("-fx-font-weight: bold;");
+        infoGrid.add(totalKeyLabel, 0, gridRow);
+        Label totalLabel = new Label(String.format("$%.2f", order.getTotal()));
+        totalLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #2e7d32; -fx-font-size: 16px;");
+        infoGrid.add(totalLabel, 1, gridRow);
+
+        Label infoHeaderLabel = new Label("Order Information");
+        infoHeaderLabel.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+        infoCard.getChildren().addAll(infoHeaderLabel, new Separator(), infoGrid);
+
+        // Order Items Card
+        VBox itemsCard = new VBox(10);
+        itemsCard.setStyle(
+                "-fx-background-color: white; -fx-padding: 15px; -fx-background-radius: 5px; -fx-border-radius: 5px; -fx-border-color: #ddd;");
+        VBox.setVgrow(itemsCard, Priority.ALWAYS);
+
+        Label itemsHeader = new Label("Order Items");
+        itemsHeader.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
+
+        // Get order items - responsive table
+        TableView<com.group25.greengrocer.model.OrderItem> itemsTable = new TableView<>();
+        itemsTable.setMinHeight(150);
+        itemsTable.setPrefHeight(250);
+        VBox.setVgrow(itemsTable, Priority.ALWAYS);
+
+        TableColumn<com.group25.greengrocer.model.OrderItem, String> colItemName = new TableColumn<>("Product");
+        colItemName.setCellValueFactory(
+                cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getProductName()));
+        colItemName.setMinWidth(100);
+
+        TableColumn<com.group25.greengrocer.model.OrderItem, String> colItemQuantity = new TableColumn<>("Quantity");
+        colItemQuantity.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(
+                cellData.getValue().getFormattedQuantity() + " " + cellData.getValue().getUnit()));
+        colItemQuantity.setMinWidth(80);
+
+        TableColumn<com.group25.greengrocer.model.OrderItem, String> colItemPrice = new TableColumn<>("Unit Price");
+        colItemPrice.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(
+                cellData.getValue().getFormattedUnitPrice()));
+        colItemPrice.setMinWidth(80);
+
+        TableColumn<com.group25.greengrocer.model.OrderItem, String> colItemTotal = new TableColumn<>("Line Total");
+        colItemTotal.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(
+                cellData.getValue().getFormattedLineTotal()));
+        colItemTotal.setMinWidth(80);
+
+        itemsTable.getColumns().addAll(colItemName, colItemQuantity, colItemPrice, colItemTotal);
+        itemsTable.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
+
+        // Load items
+        try {
+            com.group25.greengrocer.dao.OrderItemDao orderItemDao = new com.group25.greengrocer.dao.OrderItemDao();
+            java.util.List<com.group25.greengrocer.model.OrderItem> items = orderItemDao.findByOrderId(order.getId());
+            itemsTable.setItems(FXCollections.observableArrayList(items));
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert("Error", "Could not load order items: " + e.getMessage());
+        }
+
+        itemsCard.getChildren().addAll(itemsHeader, new Separator(), itemsTable);
+
+        // Close button
+        Button closeBtn = new Button("Close");
+        closeBtn.setStyle(
+                "-fx-background-color: #95a5a6; -fx-text-fill: white; -fx-font-size: 13px; -fx-padding: 8px 20px; -fx-background-radius: 3px; -fx-cursor: hand;");
+        closeBtn.setOnAction(e -> modalStage.close());
+        closeBtn.setOnMouseEntered(e -> closeBtn.setStyle(
+                "-fx-background-color: #7f8c8d; -fx-text-fill: white; -fx-font-size: 13px; -fx-padding: 8px 20px; -fx-background-radius: 3px; -fx-cursor: hand;"));
+        closeBtn.setOnMouseExited(e -> closeBtn.setStyle(
+                "-fx-background-color: #95a5a6; -fx-text-fill: white; -fx-font-size: 13px; -fx-padding: 8px 20px; -fx-background-radius: 3px; -fx-cursor: hand;"));
+
+        HBox buttonBox = new HBox(closeBtn);
+        buttonBox.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+
+        container.getChildren().addAll(headerLabel, infoCard, itemsCard, buttonBox);
+
+        ScrollPane scrollPane = new ScrollPane(container);
+        scrollPane.setFitToWidth(true);
+        scrollPane.setFitToHeight(true);
+        scrollPane.setStyle("-fx-background-color: #f4f6f9;");
+
+        javafx.scene.Scene scene = new javafx.scene.Scene(scrollPane, modalWidth, modalHeight);
+        modalStage.setScene(scene);
+
+        // Make window resizable
+        modalStage.setResizable(true);
+        modalStage.setMinWidth(400);
+        modalStage.setMinHeight(400);
+
+        modalStage.showAndWait();
     }
 
     // --- Message Logic ---

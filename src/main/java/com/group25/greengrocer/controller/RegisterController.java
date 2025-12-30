@@ -122,6 +122,18 @@ public class RegisterController {
         }
     }
 
+    @FXML
+    private void handleApplyAsCarrier() {
+        try {
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/carrier_application.fxml"));
+            Parent root = loader.load();
+            usernameField.getScene().setRoot(root);
+        } catch (IOException e) {
+            e.printStackTrace();
+            setMessage("Navigation failed.", true);
+        }
+    }
+
     private void setMessage(String text, boolean isError) {
         messageLabel.setText(text);
         messageLabel.getStyleClass().setAll(isError ? "error-label" : "success-label");

@@ -110,11 +110,14 @@
                         <Label text="Recent Orders" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #333;"/>
                         <TableView fx:id="dashboardOrderTable" VBox.vgrow="ALWAYS" maxWidth="Infinity" style="-fx-min-height: 350px;">
                             <columns>
-                                <TableColumn text="Order ID" prefWidth="120" fx:id="colDashOrderId"/>
-                                <TableColumn text="Customer" prefWidth="180" fx:id="colDashCustomer"/>
-                                <TableColumn text="Status" prefWidth="150" fx:id="colDashStatus"/>
-                                <TableColumn text="Total" prefWidth="130" fx:id="colDashTotal"/>
+                                <TableColumn text="Order ID" fx:id="colDashOrderId"/>
+                                <TableColumn text="Customer" fx:id="colDashCustomer"/>
+                                <TableColumn text="Status" fx:id="colDashStatus"/>
+                                <TableColumn text="Total" fx:id="colDashTotal"/>
                             </columns>
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                            </columnResizePolicy>
                         </TableView>
                     </VBox>
                     
@@ -259,22 +262,86 @@
         
         <!-- Orders Panel -->
         <AnchorPane fx:id="pnlOrders" style="-fx-background-color: #f4f6f9;">
-            <VBox spacing="15" style="-fx-padding: 20;" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" 
+            <VBox spacing="20" style="-fx-padding: 20;" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" 
                   AnchorPane.topAnchor="0.0" AnchorPane.bottomAnchor="0.0">
-                <HBox alignment="CENTER_RIGHT">
-                    <Button text="Refresh List" onAction="#handleRefresh" styleClass="button-secondary"/>
+                  
+                <!-- Header with Tab Navigation -->
+                <HBox alignment="CENTER_LEFT" spacing="15" styleClass="product-card" style="-fx-padding: 10 20;">
+                    <Label text="Order Management" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Label text="Show:" style="-fx-text-fill: #666;"/>
+                    <HBox spacing="0" style="-fx-background-radius: 20; -fx-background-color: #f0f0f0;">
+                        <Button fx:id="btnOrderPending" text="📋 Pending" onAction="#handleOrderTabClick" styleClass="filter-btn, filter-btn-active"/>
+                        <Button fx:id="btnOrderDelivery" text="🚚 In Delivery" onAction="#handleOrderTabClick" styleClass="filter-btn"/>
+                        <Button fx:id="btnOrderCompleted" text="✅ Completed" onAction="#handleOrderTabClick" styleClass="filter-btn"/>
+                    </HBox>
+                    <Button text="Refresh" onAction="#handleRefresh" styleClass="button-secondary"/>
                 </HBox>
-                <TableView fx:id="orderTable" VBox.vgrow="ALWAYS" styleClass="product-card" style="-fx-padding: 0;">
-                    <columns>
-                        <TableColumn fx:id="colOrderId" text="Order ID" prefWidth="80"/>
-                        <TableColumn fx:id="colOrderStatus" text="Status" prefWidth="120"/>
-                        <TableColumn fx:id="colOrderTotal" text="Total Amount" prefWidth="120"/>
-                        <TableColumn fx:id="colOrderDate" text="Date" prefWidth="180"/>
-                    </columns>
-                    <columnResizePolicy>
-                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
-                    </columnResizePolicy>
-                </TableView>
+                
+                <!-- Pending Orders View -->
+                <StackPane fx:id="orderPendingView" VBox.vgrow="ALWAYS">
+                    <VBox spacing="10" styleClass="product-card" style="-fx-padding: 15;">
+                        <Label text="📋 Pending Orders (Awaiting Carrier Assignment)" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #f39c12;"/>
+                        <Separator/>
+                        <TableView fx:id="pendingOrdersTable" VBox.vgrow="ALWAYS" minHeight="350" prefHeight="450">
+                            <columns>
+                                <TableColumn fx:id="colPendingOrderId" text="Order ID" minWidth="80"/>
+                                <TableColumn fx:id="colPendingCustomer" text="Customer" minWidth="120"/>
+                                <TableColumn fx:id="colPendingStatus" text="Status" minWidth="100"/>
+                                <TableColumn fx:id="colPendingTotal" text="Total" minWidth="100"/>
+                                <TableColumn fx:id="colPendingDate" text="Order Date" minWidth="160"/>
+                                <TableColumn fx:id="colPendingAction" text="Action" minWidth="100" maxWidth="120"/>
+                            </columns>
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                            </columnResizePolicy>
+                        </TableView>
+                    </VBox>
+                </StackPane>
+                
+                <!-- In Delivery Orders View -->
+                <StackPane fx:id="orderDeliveryView" VBox.vgrow="ALWAYS" visible="false" managed="false">
+                    <VBox spacing="10" styleClass="product-card" style="-fx-padding: 15;">
+                        <Label text="🚚 Orders In Delivery" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #3498db;"/>
+                        <Separator/>
+                        <TableView fx:id="deliveryOrdersTable" VBox.vgrow="ALWAYS" minHeight="350" prefHeight="450">
+                            <columns>
+                                <TableColumn fx:id="colDeliveryOrderId" text="Order ID" minWidth="80"/>
+                                <TableColumn fx:id="colDeliveryCustomer" text="Customer" minWidth="120"/>
+                                <TableColumn fx:id="colDeliveryCarrier" text="Carrier" minWidth="120"/>
+                                <TableColumn fx:id="colDeliveryStatus" text="Status" minWidth="100"/>
+                                <TableColumn fx:id="colDeliveryTotal" text="Total" minWidth="100"/>
+                                <TableColumn fx:id="colDeliveryDate" text="Order Date" minWidth="160"/>
+                                <TableColumn fx:id="colDeliveryAction" text="Action" minWidth="100" maxWidth="120"/>
+                            </columns>
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                            </columnResizePolicy>
+                        </TableView>
+                    </VBox>
+                </StackPane>
+                
+                <!-- Completed Orders View -->
+                <StackPane fx:id="orderCompletedView" VBox.vgrow="ALWAYS" visible="false" managed="false">
+                    <VBox spacing="10" styleClass="product-card" style="-fx-padding: 15;">
+                        <Label text="✅ Completed Orders" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #27ae60;"/>
+                        <Separator/>
+                        <TableView fx:id="completedOrdersTable" VBox.vgrow="ALWAYS" minHeight="350" prefHeight="450">
+                            <columns>
+                                <TableColumn fx:id="colCompletedOrderId" text="Order ID" minWidth="80"/>
+                                <TableColumn fx:id="colCompletedCustomer" text="Customer" minWidth="120"/>
+                                <TableColumn fx:id="colCompletedCarrier" text="Carrier" minWidth="120"/>
+                                <TableColumn fx:id="colCompletedStatus" text="Status" minWidth="100"/>
+                                <TableColumn fx:id="colCompletedTotal" text="Total" minWidth="100"/>
+                                <TableColumn fx:id="colCompletedDate" text="Completed Date" minWidth="160"/>
+                                <TableColumn fx:id="colCompletedAction" text="Action" minWidth="100" maxWidth="120"/>
+                            </columns>
+                            <columnResizePolicy>
+                                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                            </columnResizePolicy>
+                        </TableView>
+                    </VBox>
+                </StackPane>
             </VBox>
         </AnchorPane>
         
