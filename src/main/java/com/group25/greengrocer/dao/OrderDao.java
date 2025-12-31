@@ -251,4 +251,16 @@ public class OrderDao {
 
         return order;
     }
+    public void completeOrderWithDate(long orderId, java.time.LocalDateTime deliveredTime) throws SQLException {
+        String sql = "UPDATE orders SET status = 'DELIVERED', delivered_time = ? WHERE id = ?";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setObject(1, deliveredTime);
+            stmt.setLong(2, orderId);
+            int rows = stmt.executeUpdate();
+            if (rows == 0) {
+                throw new SQLException("Order not found.");
+            }
+        }
+    }
 }

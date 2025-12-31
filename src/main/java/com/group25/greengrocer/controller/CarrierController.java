@@ -240,6 +240,24 @@ public class CarrierController {
         compRequestedDateCol.setCellValueFactory(new PropertyValueFactory<>("deliveryDate"));
         compDeliveredDateCol.setCellValueFactory(new PropertyValueFactory<>("deliveredDate"));
         compTotalCol.setCellValueFactory(new PropertyValueFactory<>("total"));
+
+        compActionsCol.setCellFactory(param -> new TableCell<>() {
+            private final Button viewBtn = new Button("View");
+            {
+                viewBtn.setStyle(
+                        "-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-size: 11px; -fx-padding: 5px 10px; -fx-background-radius: 3px;");
+                viewBtn.setOnAction(event -> {
+                    OrderDisplay orderDisplay = getTableView().getItems().get(getIndex());
+                    handleViewDetails(orderDisplay);
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : viewBtn);
+            }
+        });
     }
 
     @FXML
@@ -360,14 +378,64 @@ public class CarrierController {
     }
 
     private void handleCompleteOrder(OrderDisplay orderDisplay) {
+    // Create a dialog to enter delivery date
+    javafx.scene.control.Dialog<java.time.LocalDateTime> dialog = new javafx.scene.control.Dialog<>();
+    dialog.setTitle("Complete Order");
+    dialog.setHeaderText("Enter delivery date and time for Order #" + orderDisplay.getOrderId());
+    
+    // Set the button types
+    javafx.scene.control.ButtonType confirmButtonType = new javafx.scene.control.ButtonType("Complete", javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
+    dialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, javafx.scene.control.ButtonType.CANCEL);
+    
+    // Create the date and time pickers
+    javafx.scene.layout.GridPane grid = new javafx.scene.layout.GridPane();
+    grid.setHgap(10);
+    grid.setVgap(10);
+    grid.setPadding(new javafx.geometry.Insets(20, 150, 10, 10));
+    
+    javafx.scene.control.DatePicker datePicker = new javafx.scene.control.DatePicker(java.time.LocalDate.now());
+    javafx.scene.control.Spinner<Integer> hourSpinner = new javafx.scene.control.Spinner<>(0, 23, java.time.LocalTime.now().getHour());
+    javafx.scene.control.Spinner<Integer> minuteSpinner = new javafx.scene.control.Spinner<>(0, 59, java.time.LocalTime.now().getMinute());
+    
+    hourSpinner.setEditable(true);
+    minuteSpinner.setEditable(true);
+    
+    grid.add(new javafx.scene.control.Label("Delivery Date:"), 0, 0);
+    grid.add(datePicker, 1, 0);
+    grid.add(new javafx.scene.control.Label("Time (Hour):"), 0, 1);
+    grid.add(hourSpinner, 1, 1);
+    grid.add(new javafx.scene.control.Label("Time (Minute):"), 0, 2);
+    grid.add(minuteSpinner, 1, 2);
+    
+    dialog.getDialogPane().setContent(grid);
+    
+    // Style the dialog
+    styleAlert(new Alert(Alert.AlertType.INFORMATION), "success-alert"); // Reuse styling
+    
+    // Convert the result to LocalDateTime when the confirm button is clicked
+    dialog.setResultConverter(dialogButton -> {
+        if (dialogButton == confirmButtonType) {
+            java.time.LocalDate date = datePicker.getValue();
+            int hour = hourSpinner.getValue();
+            int minute = minuteSpinner.getValue();
+            return java.time.LocalDateTime.of(date, java.time.LocalTime.of(hour, minute));
+        }
+        return null;
+    });
+    
+    java.util.Optional<java.time.LocalDateTime> result = dialog.showAndWait();
+    
+    result.ifPresent(deliveryDateTime -> {
         try {
-            orderDao.completeOrder(orderDisplay.getOrderId());
-            showInfo("Order #" + orderDisplay.getOrderId() + " completed successfully!");
+            // Update the order with the delivery date
+            orderDao.completeOrderWithDate(orderDisplay.getOrderId(), deliveryDateTime);
+            showInfo("Order #" + orderDisplay.getOrderId() + " completed successfully!\nDelivery: " + deliveryDateTime.format(dateFormatter));
             handleRefreshAll();
         } catch (Exception e) {
             e.printStackTrace();
             showError("Failed to complete order: " + e.getMessage());
         }
+    });
     }
 
     private void showError(String message) {
