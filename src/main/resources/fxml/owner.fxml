@@ -404,7 +404,7 @@
                     <columns>
                         <TableColumn fx:id="colMsgSender" text="Customer" prefWidth="150"/>
                         <TableColumn fx:id="colMsgContent" text="Message" prefWidth="300"/>
-                        <TableColumn fx:id="colMsgReply" text="Your Reply" prefWidth="300"/>
+                        <TableColumn fx:id="colMsgSubject" text="Subject" prefWidth="200"/>
                     </columns>
                     <columnResizePolicy>
                         <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>

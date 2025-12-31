@@ -375,6 +375,8 @@ public class CustomerController {
     @FXML
     private void handleViewCart() {
         productTabPane.setVisible(false);
+        ordersView.setVisible(false);
+        messagesView.setVisible(false);
         cartView.setVisible(true);
         updateCartView();
     }
@@ -382,6 +384,8 @@ public class CustomerController {
     @FXML
     private void handleBackToShop() {
         cartView.setVisible(false);
+        ordersView.setVisible(false);
+        messagesView.setVisible(false);
         productTabPane.setVisible(true);
         refreshProductCards(); // Refresh to ensure sync
     }
@@ -468,5 +472,206 @@ public class CustomerController {
         } catch (Exception e) {
             System.err.println("Could not load CSS for alert: " + e.getMessage());
         }
+    }
+
+    @FXML
+    private VBox ordersView;
+    @FXML
+    private TableView<com.group25.greengrocer.model.Order> ordersTable;
+    @FXML
+    private TableColumn<com.group25.greengrocer.model.Order, Long> colOrderId;
+    @FXML
+    private TableColumn<com.group25.greengrocer.model.Order, String> colOrderDate;
+    @FXML
+    private TableColumn<com.group25.greengrocer.model.Order, Double> colOrderTotal;
+    @FXML
+    private TableColumn<com.group25.greengrocer.model.Order, String> colOrderStatus;
+    @FXML
+    private TableColumn<com.group25.greengrocer.model.Order, Void> colOrderAction;
+
+    @FXML
+    private VBox messagesView;
+    @FXML
+    private TableView<com.group25.greengrocer.model.Message> messagesTable;
+    @FXML
+    private TableColumn<com.group25.greengrocer.model.Message, String> colMsgSender;
+    @FXML
+    private TableColumn<com.group25.greengrocer.model.Message, String> colMsgSubject;
+    @FXML
+    private TableColumn<com.group25.greengrocer.model.Message, String> colMsgContent;
+    @FXML
+    private TableColumn<com.group25.greengrocer.model.Message, String> colMsgDate;
+    @FXML
+    private TextField txtMsgSubject;
+    @FXML
+    private TextArea txtMsgContent;
+
+    private final com.group25.greengrocer.dao.OrderDao orderDao = new com.group25.greengrocer.dao.OrderDao();
+    private final com.group25.greengrocer.dao.MessageDao messageDao = new com.group25.greengrocer.dao.MessageDao();
+    // private final com.group25.greengrocer.dao.RatingDao ratingDao = new
+    // com.group25.greengrocer.dao.RatingDao();
+
+    @FXML
+    private void handleViewOrders() {
+        productTabPane.setVisible(false);
+        cartView.setVisible(false);
+        messagesView.setVisible(false);
+        ordersView.setVisible(true);
+        refreshOrders();
+    }
+
+    @FXML
+    private void handleRefreshOrders() {
+        refreshOrders();
+    }
+
+    private void refreshOrders() {
+        setupOrderTable();
+        try {
+            List<com.group25.greengrocer.model.Order> orders = orderDao.findByCustomerId(customerId);
+            ordersTable.setItems(javafx.collections.FXCollections.observableArrayList(orders));
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void setupOrderTable() {
+        if (colOrderId.getCellValueFactory() == null) {
+            colOrderId.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("id"));
+            colOrderDate.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(cellData
+                    .getValue().getOrderTime().format(java.time.format.DateTimeFormatter.ofPattern("M/d/yyyy"))));
+            colOrderTotal.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("total"));
+            colOrderStatus.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("status"));
+
+            colOrderAction.setCellFactory(param -> new TableCell<>() {
+                private final Button btnRate = new Button("Rate");
+                {
+                    btnRate.getStyleClass().add("button-secondary");
+                    btnRate.setOnAction(event -> {
+                        com.group25.greengrocer.model.Order order = getTableView().getItems().get(getIndex());
+                        handleRateCarrier(order);
+                    });
+                }
+
+                @Override
+                protected void updateItem(Void item, boolean empty) {
+                    super.updateItem(item, empty);
+                    if (empty) {
+                        setGraphic(null);
+                    } else {
+                        com.group25.greengrocer.model.Order order = getTableView().getItems().get(getIndex());
+                        if (order.getStatus() == com.group25.greengrocer.model.OrderStatus.DELIVERED
+                                && order.getCarrierId() != null) {
+                            setGraphic(btnRate);
+                        } else {
+                            setGraphic(null);
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    private void handleRateCarrier(com.group25.greengrocer.model.Order order) {
+        Dialog<ButtonType> dialog = new Dialog<>();
+        dialog.setTitle("Rate Carrier");
+        dialog.setHeaderText("Rate for Order #" + order.getId());
+
+        DialogPane dialogPane = dialog.getDialogPane();
+        dialogPane.getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+
+        VBox content = new VBox(10);
+        content.setPadding(new javafx.geometry.Insets(20));
+
+        Label lblRating = new Label("Rating (1-5):");
+        ChoiceBox<Integer> ratingBox = new ChoiceBox<>();
+        ratingBox.getItems().addAll(1, 2, 3, 4, 5);
+        ratingBox.setValue(5);
+
+        Label lblComment = new Label("Comment:");
+        TextArea txtComment = new TextArea();
+        txtComment.setPrefRowCount(3);
+        txtComment.setWrapText(true);
+
+        content.getChildren().addAll(lblRating, ratingBox, lblComment, txtComment);
+        dialogPane.setContent(content);
+        try {
+            dialogPane.getStylesheets().add(getClass().getResource("/css/app.css").toExternalForm());
+        } catch (Exception e) {
+        }
+
+        java.util.Optional<ButtonType> result = dialog.showAndWait();
+        if (result.isPresent() && result.get() == ButtonType.OK) {
+            try {
+                // Use RatingDao
+                com.group25.greengrocer.model.CarrierRating rating = new com.group25.greengrocer.model.CarrierRating(
+                        0, // ID auto-inc
+                        (int) order.getId(),
+                        (int) customerId,
+                        order.getCarrierId().intValue(),
+                        ratingBox.getValue(),
+                        txtComment.getText(),
+                        null // Date handled by DB NOW()
+                );
+
+                // We need to uncomment the dao field first or use local instance
+                com.group25.greengrocer.dao.RatingDao rDao = new com.group25.greengrocer.dao.RatingDao();
+                rDao.addRating(rating);
+
+                showAlert(Alert.AlertType.INFORMATION, "Success", "Rating submitted!");
+            } catch (Exception e) {
+                e.printStackTrace();
+                showAlert(Alert.AlertType.ERROR, "Error", "Failed to submit rating.");
+            }
+        }
+    }
+
+    @FXML
+    private void handleViewMessages() {
+        productTabPane.setVisible(false);
+        cartView.setVisible(false);
+        ordersView.setVisible(false);
+        messagesView.setVisible(true);
+        refreshMessages();
+    }
+
+    @FXML
+    private void handleRefreshMessages() {
+        refreshMessages();
+    }
+
+    private void refreshMessages() {
+        setupMessageTable();
+        List<com.group25.greengrocer.model.Message> messages = messageDao.getMessagesForUser(customerId);
+        messagesTable.setItems(javafx.collections.FXCollections.observableArrayList(messages));
+    }
+
+    private void setupMessageTable() {
+        if (colMsgSender.getCellValueFactory() == null) {
+            colMsgSender.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("senderName"));
+            colMsgSubject.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("subject"));
+            colMsgContent.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("content"));
+            colMsgDate.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(
+                    cellData.getValue().getSentTime().toString()));
+        }
+    }
+
+    @FXML
+    private void handleSendMessage() {
+        String subject = txtMsgSubject.getText();
+        String content = txtMsgContent.getText();
+
+        if (subject.isEmpty() || content.isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "Warning", "Please enter subject and content.");
+            return;
+        }
+
+        long ownerId = 1;
+
+        messageDao.sendMessage(customerId, ownerId, subject, content);
+        txtMsgSubject.clear();
+        txtMsgContent.clear();
+        refreshMessages();
+        showAlert(Alert.AlertType.INFORMATION, "Sent", "Message sent to Owner.");
     }
 }

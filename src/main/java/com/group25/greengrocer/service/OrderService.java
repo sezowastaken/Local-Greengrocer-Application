@@ -52,6 +52,20 @@ public class OrderService {
             conn.commit(); // Commit all changes
             System.out.println("Order placed successfully. ID: " + orderId);
 
+            // Generate and Save Invoice PDF
+            try {
+                byte[] invoicePdf = com.group25.greengrocer.util.PdfInvoiceUtil.generateInvoice(order, items);
+                // Note: saveInvoice inside OrderDao manages its own connection, which is fine
+                // here after commit.
+                orderDao.saveInvoice(orderId, invoicePdf);
+                System.out.println("Invoice generated and saved for Order ID: " + orderId);
+            } catch (Exception e) {
+                System.err.println("Failed to generate/save invoice: " + e.getMessage());
+                e.printStackTrace();
+                // We don't rollback the order if invoice fails, just log it.
+                // In a real app, we might retry or queue it.
+            }
+
         } catch (SQLException e) {
             if (conn != null) {
                 try {

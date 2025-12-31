@@ -207,7 +207,7 @@ public class OwnerController {
     @FXML
     private TableColumn<Message, String> colMsgContent;
     @FXML
-    private TableColumn<Message, String> colMsgReply;
+    private TableColumn<Message, String> colMsgSubject;
     @FXML
     private TextArea txtReply;
 
@@ -2104,7 +2104,7 @@ public class OwnerController {
     private void setupMessageTable() {
         colMsgSender.setCellValueFactory(new PropertyValueFactory<>("senderName"));
         colMsgContent.setCellValueFactory(new PropertyValueFactory<>("content"));
-        colMsgReply.setCellValueFactory(new PropertyValueFactory<>("reply"));
+        colMsgSubject.setCellValueFactory(new PropertyValueFactory<>("subject"));
     }
 
     private void loadMessages() {
@@ -2116,9 +2116,12 @@ public class OwnerController {
         Message selected = messageTable.getSelectionModel().getSelectedItem();
         String reply = txtReply.getText();
         if (selected != null && !reply.isEmpty()) {
-            messageDao.replyToMessage(selected.getId(), reply);
+            long ownerId = com.group25.greengrocer.util.Session.getCurrentUser().getId();
+            messageDao.sendMessage(ownerId, selected.getSenderId(),
+                    "Re: " + (selected.getSubject() != null ? selected.getSubject() : "Message"), reply);
             loadMessages();
             txtReply.clear();
+            NotificationUtil.showSuccess("Success", "Reply sent successfully.");
         } else {
             NotificationUtil.showError("Error", "Select a message and enter reply.");
         }

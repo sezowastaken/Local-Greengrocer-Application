@@ -54,4 +54,19 @@ public class RatingDao {
         }
         return 0.0;
     }
+
+    public void addRating(CarrierRating rating) {
+        String query = "INSERT INTO carrier_ratings (order_id, customer_id, carrier_id, rating, comment, created_at) VALUES (?, ?, ?, ?, ?, NOW())";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, rating.getOrderId());
+            stmt.setInt(2, rating.getCustomerId());
+            stmt.setInt(3, rating.getCarrierId());
+            stmt.setInt(4, rating.getRating());
+            stmt.setString(5, rating.getComment());
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 }

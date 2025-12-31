@@ -28,10 +28,9 @@ public class MessageDao {
                         rs.getInt("id"),
                         rs.getInt("sender_id"),
                         rs.getString("sender_name"),
+                        rs.getString("subject"),
                         rs.getString("body"), // Column is 'body' in DB
-                        rs.getTimestamp("created_at"), // Column is 'created_at' in DB
-                        null, // 'reply' column does not exist in DB
-                        null)); // 'reply_time' column does not exist in DB
+                        rs.getTimestamp("created_at")));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -39,22 +38,46 @@ public class MessageDao {
         return messages;
     }
 
-    public void replyToMessage(int messageId, String reply) {
-        // String query = "UPDATE messages SET reply = ?, reply_time = NOW() WHERE id =
-        // ?";
-        // Columns reply and reply_time do not exist. Logic needs to be revised (e.g.
-        // creating new message).
-        System.err.println("replyToMessage not implemented: Schema missing reply columns.");
-        /*
-         * try (Connection conn = DbAdapter.getConnection();
-         * PreparedStatement stmt = conn.prepareStatement(query)) {
-         * 
-         * stmt.setString(1, reply);
-         * stmt.setInt(2, messageId);
-         * stmt.executeUpdate();
-         * } catch (SQLException e) {
-         * e.printStackTrace();
-         * }
-         */
+    public void sendMessage(long senderId, long receiverId, String subject, String body) {
+        String sql = "INSERT INTO messages (sender_id, receiver_id, subject, body, is_read) VALUES (?, ?, ?, ?, 0)";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, senderId);
+            stmt.setLong(2, receiverId);
+            stmt.setString(3, subject);
+            stmt.setString(4, body);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public List<Message> getMessagesForUser(long userId) {
+        List<Message> messages = new ArrayList<>();
+        // Get messages where user is sender or receiver
+        String query = "SELECT m.*, s.username as sender_name FROM messages m " +
+                "JOIN users s ON m.sender_id = s.id " +
+                "WHERE m.sender_id = ? OR m.receiver_id = ? " +
+                "ORDER BY m.created_at DESC";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setLong(1, userId);
+            stmt.setLong(2, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    messages.add(new Message(
+                            rs.getInt("id"),
+                            rs.getInt("sender_id"),
+                            rs.getString("sender_name"),
+                            rs.getString("subject"),
+                            rs.getString("body"),
+                            rs.getTimestamp("created_at")));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return messages;
     }
 }

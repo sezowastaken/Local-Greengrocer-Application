@@ -128,7 +128,7 @@ public class OrderDao {
     public List<Order> findAvailableOrders() throws SQLException {
         List<Order> orders = new ArrayList<>();
         // Assuming 'PLACED' is the status for orders ready to be picked by carriers
-        String sql = "SELECT * FROM orders WHERE status IN ('PLACED', 'READY') ORDER BY requested_delivery_time ASC";
+        String sql = "SELECT * FROM orders WHERE status IN ('PLACED', 'READY') AND carrier_id IS NULL ORDER BY requested_delivery_time ASC";
 
         try (Connection conn = DbAdapter.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql);
@@ -200,13 +200,13 @@ public class OrderDao {
     }
 
     public void completeOrder(long orderId) throws SQLException {
-        String sql = "UPDATE orders SET status = 'DELIVERED', delivered_time = NOW() WHERE id = ?";
+        String sql = "UPDATE orders SET status = 'DELIVERED', delivered_time = NOW() WHERE id = ? AND status = 'ASSIGNED'";
         try (Connection conn = DbAdapter.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, orderId);
             int rows = stmt.executeUpdate();
             if (rows == 0) {
-                throw new SQLException("Order not found.");
+                throw new SQLException("Order not found or not in ASSIGNED state.");
             }
         }
     }
@@ -251,16 +251,41 @@ public class OrderDao {
 
         return order;
     }
+
     public void completeOrderWithDate(long orderId, java.time.LocalDateTime deliveredTime) throws SQLException {
-        String sql = "UPDATE orders SET status = 'DELIVERED', delivered_time = ? WHERE id = ?";
+        String sql = "UPDATE orders SET status = 'DELIVERED', delivered_time = ? WHERE id = ? AND status = 'ASSIGNED'";
         try (Connection conn = DbAdapter.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setObject(1, deliveredTime);
             stmt.setLong(2, orderId);
             int rows = stmt.executeUpdate();
             if (rows == 0) {
-                throw new SQLException("Order not found.");
+                throw new SQLException("Order not found or not in ASSIGNED state.");
             }
         }
+    }
+
+    public void saveInvoice(long orderId, byte[] pdfData) throws SQLException {
+        String sql = "INSERT INTO invoices (order_id, pdf_blob) VALUES (?, ?)";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, orderId);
+            stmt.setBytes(2, pdfData);
+            stmt.executeUpdate();
+        }
+    }
+
+    public byte[] getInvoice(long orderId) throws SQLException {
+        String sql = "SELECT pdf_blob FROM invoices WHERE order_id = ?";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, orderId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getBytes("pdf_blob");
+                }
+            }
+        }
+        return null;
     }
 }
