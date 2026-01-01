@@ -55,7 +55,23 @@ public class RatingDao {
         return 0.0;
     }
 
-    public void addRating(CarrierRating rating) {
+    public boolean hasRatingForOrder(long orderId) {
+        String query = "SELECT COUNT(*) FROM carrier_ratings WHERE order_id = ?";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setLong(1, orderId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return false;
+    }
+
+    public boolean addRating(CarrierRating rating) {
         String query = "INSERT INTO carrier_ratings (order_id, customer_id, carrier_id, rating, comment, created_at) VALUES (?, ?, ?, ?, ?, NOW())";
         try (Connection conn = DbAdapter.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -65,8 +81,10 @@ public class RatingDao {
             stmt.setInt(4, rating.getRating());
             stmt.setString(5, rating.getComment());
             stmt.executeUpdate();
+            return true;
         } catch (SQLException e) {
             e.printStackTrace();
+            return false;
         }
     }
 }

@@ -82,6 +82,8 @@ public class CarrierController {
     @FXML
     private Label orderDetailsTitleLabel;
     @FXML
+    private Label orderDetailsNoteLabel;
+    @FXML
     private TableView<com.group25.greengrocer.model.OrderItem> orderDetailsTable;
     @FXML
     private TableColumn<com.group25.greengrocer.model.OrderItem, String> detailProductNameCol;
@@ -150,6 +152,10 @@ public class CarrierController {
     private void handleViewDetails(OrderDisplay orderDisplay) {
         try {
             orderDetailsTitleLabel.setText("Order #" + orderDisplay.getOrderId() + " - Product List");
+            if (orderDetailsNoteLabel != null) {
+                String note = orderDisplay.getNote();
+                orderDetailsNoteLabel.setText((note != null && !note.isEmpty()) ? "Note: " + note : "No Data");
+            }
 
             java.util.List<com.group25.greengrocer.model.OrderItem> items = orderItemDao
                     .findByOrderId(orderDisplay.getOrderId());
@@ -305,7 +311,8 @@ public class CarrierController {
                                 : "N/A",
                         String.format("$%.2f", order.getTotal()),
                         null,
-                        null));
+                        null,
+                        order.getNote()));
             }
 
             availableOrdersTable.setItems(displayOrders);
@@ -336,7 +343,8 @@ public class CarrierController {
                                 : "N/A",
                         String.format("$%.2f", order.getTotal()),
                         null,
-                        null));
+                        null,
+                        order.getNote()));
             }
 
             currentOrdersTable.setItems(displayOrders);
@@ -380,7 +388,8 @@ public class CarrierController {
                         order.getDeliveredTime() != null
                                 ? order.getDeliveredTime().format(dateFormatter)
                                 : "N/A",
-                        ratingStr));
+                        ratingStr,
+                        order.getNote()));
             }
 
             completedOrdersTable.setItems(displayOrders);
@@ -526,9 +535,10 @@ public class CarrierController {
         private final String total;
         private final String deliveredDate;
         private final String rating;
+        private final String note;
 
         public OrderDisplay(long orderId, String customerName, String customerAddress,
-                String deliveryDate, String total, String deliveredDate, String rating) {
+                String deliveryDate, String total, String deliveredDate, String rating, String note) {
             this.orderId = orderId;
             this.customerName = customerName;
             this.customerAddress = customerAddress;
@@ -536,6 +546,7 @@ public class CarrierController {
             this.total = total;
             this.deliveredDate = deliveredDate;
             this.rating = rating;
+            this.note = note;
         }
 
         public long getOrderId() {
@@ -564,6 +575,10 @@ public class CarrierController {
 
         public String getRating() {
             return rating;
+        }
+
+        public String getNote() {
+            return note;
         }
     }
 

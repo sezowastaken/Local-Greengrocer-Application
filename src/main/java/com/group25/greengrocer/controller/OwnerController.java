@@ -2008,6 +2008,16 @@ public class OwnerController {
         infoGrid.add(dateValueLabel, 1, gridRow);
         gridRow++;
 
+        Label noteKeyLabel = new Label("Note:");
+        noteKeyLabel.setStyle("-fx-font-weight: bold;");
+        infoGrid.add(noteKeyLabel, 0, gridRow);
+        Label noteValueLabel = new Label(
+                (order.getNote() != null && !order.getNote().isEmpty()) ? order.getNote() : "No Data");
+        noteValueLabel.setWrapText(true);
+        noteValueLabel.setStyle("-fx-text-fill: #e67e22; -fx-font-style: italic;");
+        infoGrid.add(noteValueLabel, 1, gridRow);
+        gridRow++;
+
         Label totalKeyLabel = new Label("Total Amount:");
         totalKeyLabel.setStyle("-fx-font-weight: bold;");
         infoGrid.add(totalKeyLabel, 0, gridRow);

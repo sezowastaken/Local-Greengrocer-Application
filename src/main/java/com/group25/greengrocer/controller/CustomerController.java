@@ -76,8 +76,22 @@ public class CustomerController {
         }
 
         try {
+            // Ask for Order Note
+            TextInputDialog noteDialog = new TextInputDialog();
+            noteDialog.setTitle("Order Note");
+            noteDialog.setHeaderText("Add a note for your order (Optional)");
+            noteDialog.setContentText("Note:");
+            styleAlert(noteDialog); // Reuse existing style method if possible, otherwise remove this line
+
+            String orderNote = "";
+            java.util.Optional<String> noteResult = noteDialog.showAndWait();
+            if (noteResult.isPresent()) {
+                orderNote = noteResult.get();
+            }
+
             // Build Order Object
             com.group25.greengrocer.model.Order order = new com.group25.greengrocer.model.Order();
+            order.setNote(orderNote); // Set the note
             order.setCustomerId(customerId);
             order.setStatus(com.group25.greengrocer.model.OrderStatus.PLACED);
             order.setOrderTime(java.time.LocalDateTime.now());
@@ -464,7 +478,7 @@ public class CustomerController {
         alert.showAndWait();
     }
 
-    private void styleAlert(Alert alert) {
+    private void styleAlert(Dialog<?> alert) {
         DialogPane dialogPane = alert.getDialogPane();
         try {
             dialogPane.getStylesheets().add(getClass().getResource("/css/app.css").toExternalForm());
@@ -591,6 +605,12 @@ public class CustomerController {
     }
 
     private void handleRateCarrier(com.group25.greengrocer.model.Order order) {
+        com.group25.greengrocer.dao.RatingDao rDao = new com.group25.greengrocer.dao.RatingDao();
+        if (rDao.hasRatingForOrder(order.getId())) {
+            showAlert(Alert.AlertType.WARNING, "Already Rated", "You have already rated this order.");
+            return;
+        }
+
         Dialog<ButtonType> dialog = new Dialog<>();
         dialog.setTitle("Rate Carrier");
         dialog.setHeaderText("Rate for Order #" + order.getId());
@@ -632,11 +652,11 @@ public class CustomerController {
                         null // Date handled by DB NOW()
                 );
 
-                // We need to uncomment the dao field first or use local instance
-                com.group25.greengrocer.dao.RatingDao rDao = new com.group25.greengrocer.dao.RatingDao();
-                rDao.addRating(rating);
-
-                showAlert(Alert.AlertType.INFORMATION, "Success", "Rating submitted!");
+                if (rDao.addRating(rating)) {
+                    showAlert(Alert.AlertType.INFORMATION, "Success", "Rating submitted!");
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Error", "Failed to submit rating.");
+                }
             } catch (Exception e) {
                 e.printStackTrace();
                 showAlert(Alert.AlertType.ERROR, "Error", "Failed to submit rating.");
