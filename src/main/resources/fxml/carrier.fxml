@@ -16,6 +16,7 @@
         <top>
             <HBox spacing="20" alignment="CENTER_LEFT" styleClass="carrier-header">
                 <Text fx:id="welcomeText" text="Welcome, Carrier" styleClass="welcome-text"/>
+                <Label fx:id="ratingLabel" text="Rating: -/5" style="-fx-font-size: 14px; -fx-text-fill: #f1c40f; -fx-font-weight: bold;"/>
                 <Region HBox.hgrow="ALWAYS"/>
                 <Button text="Refresh All" onAction="#handleRefreshAll" styleClass="refresh-btn"/>
                 <Button text="Profile" onAction="#handleShowProfile" styleClass="profile-btn"/>
@@ -87,6 +88,7 @@
                             <TableColumn fx:id="compCustomerNameCol" text="Customer Name" prefWidth="150"/>
                             <TableColumn fx:id="compRequestedDateCol" text="Requested Date" prefWidth="130"/>
                             <TableColumn fx:id="compDeliveredDateCol" text="Delivered Date" prefWidth="130"/>
+                            <TableColumn fx:id="compRatingCol" text="Rating" prefWidth="60"/>
                             <TableColumn fx:id="compTotalCol" text="Total ($)" prefWidth="100"/>
                             <TableColumn fx:id="compActionsCol" text="Actions" prefWidth="120"/>
                         </columns>

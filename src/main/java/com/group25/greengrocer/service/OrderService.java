@@ -55,9 +55,10 @@ public class OrderService {
             // Generate and Save Invoice PDF
             try {
                 byte[] invoicePdf = com.group25.greengrocer.util.PdfInvoiceUtil.generateInvoice(order, items);
-                // Note: saveInvoice inside OrderDao manages its own connection, which is fine
-                // here after commit.
-                orderDao.saveInvoice(orderId, invoicePdf);
+                // CRITICAL: Pass the existing 'conn' so we stay in the same transaction
+                // and don't close the connection prematurely.
+                orderDao.saveInvoice(orderId, invoicePdf, conn);
+                conn.commit(); // Commit invoice insertion
                 System.out.println("Invoice generated and saved for Order ID: " + orderId);
             } catch (Exception e) {
                 System.err.println("Failed to generate/save invoice: " + e.getMessage());

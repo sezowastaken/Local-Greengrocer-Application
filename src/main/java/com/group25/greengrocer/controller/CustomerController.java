@@ -545,11 +545,22 @@ public class CustomerController {
 
             colOrderAction.setCellFactory(param -> new TableCell<>() {
                 private final Button btnRate = new Button("Rate");
+                private final Button btnInvoice = new Button("Invoice");
+                private final HBox pane = new HBox(5, btnInvoice, btnRate);
+
                 {
                     btnRate.getStyleClass().add("button-secondary");
+                    btnInvoice.getStyleClass().add("button-primary"); // Or another style
+                    btnInvoice.setStyle("-fx-font-size: 10px; -fx-padding: 3 8;");
+
                     btnRate.setOnAction(event -> {
                         com.group25.greengrocer.model.Order order = getTableView().getItems().get(getIndex());
                         handleRateCarrier(order);
+                    });
+
+                    btnInvoice.setOnAction(event -> {
+                        com.group25.greengrocer.model.Order order = getTableView().getItems().get(getIndex());
+                        handleViewInvoice(order);
                     });
                 }
 
@@ -560,12 +571,19 @@ public class CustomerController {
                         setGraphic(null);
                     } else {
                         com.group25.greengrocer.model.Order order = getTableView().getItems().get(getIndex());
+
+                        // Invoice button always visible for existing orders
+                        // Rate button only for delivered
+
+                        pane.getChildren().clear();
+                        pane.getChildren().add(btnInvoice);
+
                         if (order.getStatus() == com.group25.greengrocer.model.OrderStatus.DELIVERED
                                 && order.getCarrierId() != null) {
-                            setGraphic(btnRate);
-                        } else {
-                            setGraphic(null);
+                            pane.getChildren().add(btnRate);
                         }
+
+                        setGraphic(pane);
                     }
                 }
             });
@@ -623,6 +641,29 @@ public class CustomerController {
                 e.printStackTrace();
                 showAlert(Alert.AlertType.ERROR, "Error", "Failed to submit rating.");
             }
+        }
+    }
+
+    private void handleViewInvoice(com.group25.greengrocer.model.Order order) {
+        try {
+            byte[] pdfData = orderDao.getInvoice(order.getId());
+            if (pdfData == null || pdfData.length == 0) {
+                showAlert(Alert.AlertType.WARNING, "Not Found", "No invoice found for this order.");
+                return;
+            }
+
+            // Save to temporary file
+            java.io.File tempFile = java.io.File.createTempFile("invoice_" + order.getId() + "_", ".pdf");
+            try (java.io.FileOutputStream fos = new java.io.FileOutputStream(tempFile)) {
+                fos.write(pdfData);
+            }
+
+            // Open file
+            java.awt.Desktop.getDesktop().open(tempFile);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            showAlert(Alert.AlertType.ERROR, "Error", "Could not view invoice: " + e.getMessage());
         }
     }
 

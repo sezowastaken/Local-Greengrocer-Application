@@ -72,6 +72,8 @@ public class CarrierController {
     @FXML
     private TableColumn<OrderDisplay, String> compTotalCol;
     @FXML
+    private TableColumn<OrderDisplay, String> compRatingCol;
+    @FXML
     private TableColumn<OrderDisplay, Void> compActionsCol;
 
     // Order Details Popup elements
@@ -104,10 +106,24 @@ public class CarrierController {
     private long carrierId;
     private String carrierUsername;
 
+    @FXML
+    private Label ratingLabel;
+
+    // ...
+    private com.group25.greengrocer.dao.RatingDao ratingDao = new com.group25.greengrocer.dao.RatingDao();
+
     public void setCarrierSession(long id, String username) {
         this.carrierId = id;
         this.carrierUsername = username;
         welcomeText.setText("Welcome, " + username);
+        updateRatingDisplay();
+    }
+
+    private void updateRatingDisplay() {
+        if (ratingLabel != null) {
+            double avg = ratingDao.getAverageRating((int) carrierId);
+            ratingLabel.setText(String.format("Rating: %.1f/5", avg));
+        }
     }
 
     @FXML
@@ -239,6 +255,7 @@ public class CarrierController {
         compCustomerNameCol.setCellValueFactory(new PropertyValueFactory<>("customerName"));
         compRequestedDateCol.setCellValueFactory(new PropertyValueFactory<>("deliveryDate"));
         compDeliveredDateCol.setCellValueFactory(new PropertyValueFactory<>("deliveredDate"));
+        compRatingCol.setCellValueFactory(new PropertyValueFactory<>("rating"));
         compTotalCol.setCellValueFactory(new PropertyValueFactory<>("total"));
 
         compActionsCol.setCellFactory(param -> new TableCell<>() {
@@ -265,6 +282,7 @@ public class CarrierController {
         handleRefreshAvailable();
         handleRefreshCurrent();
         handleRefreshCompleted();
+        updateRatingDisplay();
     }
 
     @FXML
@@ -286,6 +304,7 @@ public class CarrierController {
                                 ? order.getRequestedDeliveryTime().format(dateFormatter)
                                 : "N/A",
                         String.format("$%.2f", order.getTotal()),
+                        null,
                         null));
             }
 
@@ -316,6 +335,7 @@ public class CarrierController {
                                 ? order.getRequestedDeliveryTime().format(dateFormatter)
                                 : "N/A",
                         String.format("$%.2f", order.getTotal()),
+                        null,
                         null));
             }
 
@@ -333,9 +353,21 @@ public class CarrierController {
             List<Order> orders = orderDao.findCompletedByCarrierId(carrierId);
             ObservableList<OrderDisplay> displayOrders = FXCollections.observableArrayList();
 
+            List<com.group25.greengrocer.model.CarrierRating> ratings = ratingDao
+                    .getRatingsByCarrierId((int) carrierId);
+            java.util.Map<Integer, Integer> ratingMap = new java.util.HashMap<>();
+            for (com.group25.greengrocer.model.CarrierRating r : ratings) {
+                ratingMap.put(r.getOrderId(), r.getRating());
+            }
+
             for (Order order : orders) {
                 com.group25.greengrocer.dao.UserDao.UserProfile user = userDao.findById(order.getCustomerId());
                 String customerName = user != null ? user.getFullName() : "Unknown";
+
+                String ratingStr = "-";
+                if (ratingMap.containsKey((int) order.getId())) {
+                    ratingStr = String.valueOf(ratingMap.get((int) order.getId()));
+                }
 
                 displayOrders.add(new OrderDisplay(
                         order.getId(),
@@ -347,7 +379,8 @@ public class CarrierController {
                         String.format("$%.2f", order.getTotal()),
                         order.getDeliveredTime() != null
                                 ? order.getDeliveredTime().format(dateFormatter)
-                                : "N/A"));
+                                : "N/A",
+                        ratingStr));
             }
 
             completedOrdersTable.setItems(displayOrders);
@@ -378,64 +411,68 @@ public class CarrierController {
     }
 
     private void handleCompleteOrder(OrderDisplay orderDisplay) {
-    // Create a dialog to enter delivery date
-    javafx.scene.control.Dialog<java.time.LocalDateTime> dialog = new javafx.scene.control.Dialog<>();
-    dialog.setTitle("Complete Order");
-    dialog.setHeaderText("Enter delivery date and time for Order #" + orderDisplay.getOrderId());
-    
-    // Set the button types
-    javafx.scene.control.ButtonType confirmButtonType = new javafx.scene.control.ButtonType("Complete", javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
-    dialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, javafx.scene.control.ButtonType.CANCEL);
-    
-    // Create the date and time pickers
-    javafx.scene.layout.GridPane grid = new javafx.scene.layout.GridPane();
-    grid.setHgap(10);
-    grid.setVgap(10);
-    grid.setPadding(new javafx.geometry.Insets(20, 150, 10, 10));
-    
-    javafx.scene.control.DatePicker datePicker = new javafx.scene.control.DatePicker(java.time.LocalDate.now());
-    javafx.scene.control.Spinner<Integer> hourSpinner = new javafx.scene.control.Spinner<>(0, 23, java.time.LocalTime.now().getHour());
-    javafx.scene.control.Spinner<Integer> minuteSpinner = new javafx.scene.control.Spinner<>(0, 59, java.time.LocalTime.now().getMinute());
-    
-    hourSpinner.setEditable(true);
-    minuteSpinner.setEditable(true);
-    
-    grid.add(new javafx.scene.control.Label("Delivery Date:"), 0, 0);
-    grid.add(datePicker, 1, 0);
-    grid.add(new javafx.scene.control.Label("Time (Hour):"), 0, 1);
-    grid.add(hourSpinner, 1, 1);
-    grid.add(new javafx.scene.control.Label("Time (Minute):"), 0, 2);
-    grid.add(minuteSpinner, 1, 2);
-    
-    dialog.getDialogPane().setContent(grid);
-    
-    // Style the dialog
-    styleAlert(new Alert(Alert.AlertType.INFORMATION), "success-alert"); // Reuse styling
-    
-    // Convert the result to LocalDateTime when the confirm button is clicked
-    dialog.setResultConverter(dialogButton -> {
-        if (dialogButton == confirmButtonType) {
-            java.time.LocalDate date = datePicker.getValue();
-            int hour = hourSpinner.getValue();
-            int minute = minuteSpinner.getValue();
-            return java.time.LocalDateTime.of(date, java.time.LocalTime.of(hour, minute));
-        }
-        return null;
-    });
-    
-    java.util.Optional<java.time.LocalDateTime> result = dialog.showAndWait();
-    
-    result.ifPresent(deliveryDateTime -> {
-        try {
-            // Update the order with the delivery date
-            orderDao.completeOrderWithDate(orderDisplay.getOrderId(), deliveryDateTime);
-            showInfo("Order #" + orderDisplay.getOrderId() + " completed successfully!\nDelivery: " + deliveryDateTime.format(dateFormatter));
-            handleRefreshAll();
-        } catch (Exception e) {
-            e.printStackTrace();
-            showError("Failed to complete order: " + e.getMessage());
-        }
-    });
+        // Create a dialog to enter delivery date
+        javafx.scene.control.Dialog<java.time.LocalDateTime> dialog = new javafx.scene.control.Dialog<>();
+        dialog.setTitle("Complete Order");
+        dialog.setHeaderText("Enter delivery date and time for Order #" + orderDisplay.getOrderId());
+
+        // Set the button types
+        javafx.scene.control.ButtonType confirmButtonType = new javafx.scene.control.ButtonType("Complete",
+                javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, javafx.scene.control.ButtonType.CANCEL);
+
+        // Create the date and time pickers
+        javafx.scene.layout.GridPane grid = new javafx.scene.layout.GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new javafx.geometry.Insets(20, 150, 10, 10));
+
+        javafx.scene.control.DatePicker datePicker = new javafx.scene.control.DatePicker(java.time.LocalDate.now());
+        javafx.scene.control.Spinner<Integer> hourSpinner = new javafx.scene.control.Spinner<>(0, 23,
+                java.time.LocalTime.now().getHour());
+        javafx.scene.control.Spinner<Integer> minuteSpinner = new javafx.scene.control.Spinner<>(0, 59,
+                java.time.LocalTime.now().getMinute());
+
+        hourSpinner.setEditable(true);
+        minuteSpinner.setEditable(true);
+
+        grid.add(new javafx.scene.control.Label("Delivery Date:"), 0, 0);
+        grid.add(datePicker, 1, 0);
+        grid.add(new javafx.scene.control.Label("Time (Hour):"), 0, 1);
+        grid.add(hourSpinner, 1, 1);
+        grid.add(new javafx.scene.control.Label("Time (Minute):"), 0, 2);
+        grid.add(minuteSpinner, 1, 2);
+
+        dialog.getDialogPane().setContent(grid);
+
+        // Style the dialog
+        styleAlert(new Alert(Alert.AlertType.INFORMATION), "success-alert"); // Reuse styling
+
+        // Convert the result to LocalDateTime when the confirm button is clicked
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == confirmButtonType) {
+                java.time.LocalDate date = datePicker.getValue();
+                int hour = hourSpinner.getValue();
+                int minute = minuteSpinner.getValue();
+                return java.time.LocalDateTime.of(date, java.time.LocalTime.of(hour, minute));
+            }
+            return null;
+        });
+
+        java.util.Optional<java.time.LocalDateTime> result = dialog.showAndWait();
+
+        result.ifPresent(deliveryDateTime -> {
+            try {
+                // Update the order with the delivery date
+                orderDao.completeOrderWithDate(orderDisplay.getOrderId(), deliveryDateTime);
+                showInfo("Order #" + orderDisplay.getOrderId() + " completed successfully!\nDelivery: "
+                        + deliveryDateTime.format(dateFormatter));
+                handleRefreshAll();
+            } catch (Exception e) {
+                e.printStackTrace();
+                showError("Failed to complete order: " + e.getMessage());
+            }
+        });
     }
 
     private void showError(String message) {
@@ -488,15 +525,17 @@ public class CarrierController {
         private final String deliveryDate;
         private final String total;
         private final String deliveredDate;
+        private final String rating;
 
         public OrderDisplay(long orderId, String customerName, String customerAddress,
-                String deliveryDate, String total, String deliveredDate) {
+                String deliveryDate, String total, String deliveredDate, String rating) {
             this.orderId = orderId;
             this.customerName = customerName;
             this.customerAddress = customerAddress;
             this.deliveryDate = deliveryDate;
             this.total = total;
             this.deliveredDate = deliveredDate;
+            this.rating = rating;
         }
 
         public long getOrderId() {
@@ -521,6 +560,10 @@ public class CarrierController {
 
         public String getDeliveredDate() {
             return deliveredDate;
+        }
+
+        public String getRating() {
+            return rating;
         }
     }
 

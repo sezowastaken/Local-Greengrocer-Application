@@ -272,6 +272,21 @@ public class OrderDao {
             stmt.setLong(1, orderId);
             stmt.setBytes(2, pdfData);
             stmt.executeUpdate();
+            // If this method created its own connection (autocommit true usually), commit
+            // isn't explicitly needed but good practice if safe.
+            // But here we just rely on auto-commit if standalone.
+        }
+    }
+
+    // Overloaded method for transaction participation (Matches create(Order,
+    // Connection) pattern)
+    public void saveInvoice(long orderId, byte[] pdfData, Connection conn) throws SQLException {
+        String sql = "INSERT INTO invoices (order_id, pdf_blob) VALUES (?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, orderId);
+            stmt.setBytes(2, pdfData);
+            stmt.executeUpdate();
+            // Do NOT close connection here!
         }
     }
 
