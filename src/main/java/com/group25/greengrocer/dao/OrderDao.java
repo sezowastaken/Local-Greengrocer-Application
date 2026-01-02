@@ -11,8 +11,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Data Access Object for Order operations.
+ * 
+ * This class provides database operations for managing orders, including
+ * order creation, status updates, carrier assignment, order retrieval,
+ * invoice management, and order statistics. Supports transactional operations.
+ */
 public class OrderDao {
 
+    /**
+     * Retrieves all orders from the database.
+     * 
+     * @return A list of all Order objects, or empty list if none found
+     */
     public List<Order> getAllOrders() {
         List<Order> orders = new ArrayList<>();
         String query = "SELECT * FROM orders ORDER BY order_time DESC";
@@ -30,7 +42,14 @@ public class OrderDao {
         return orders;
     }
 
-    // Transactional create method
+    /**
+     * Creates a new order in the database within a transaction.
+     * 
+     * @param order The Order object containing order details
+     * @param conn The database connection to use (for transaction management)
+     * @return The generated order ID
+     * @throws SQLException if the order creation fails or no ID is obtained
+     */
     public long create(Order order, Connection conn) throws SQLException {
         String sql = "INSERT INTO orders (customer_id, status, subtotal, vat_rate, vat_total, discount_total, total, loyalty_discount_rate, requested_delivery_time, note) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
@@ -63,6 +82,13 @@ public class OrderDao {
         }
     }
 
+    /**
+     * Retrieves all orders for a specific customer.
+     * 
+     * @param customerId The ID of the customer
+     * @return A list of Order objects for the customer, or empty list if none found
+     * @throws SQLException if a database error occurs
+     */
     public List<Order> findByCustomerId(long customerId) throws SQLException {
         List<Order> orders = new ArrayList<>();
         String sql = "SELECT * FROM orders WHERE customer_id = ? ORDER BY order_time DESC";
@@ -80,6 +106,11 @@ public class OrderDao {
         return orders;
     }
 
+    /**
+     * Retrieves the top 5 best-selling products based on delivered orders.
+     * 
+     * @return A map where keys are product names and values are total quantities sold
+     */
     public Map<String, Integer> getTopSellingProducts() {
         Map<String, Integer> stats = new HashMap<>();
         String query = "SELECT p.name, SUM(oi.quantity) as total_qty " +
@@ -103,6 +134,11 @@ public class OrderDao {
         return stats;
     }
 
+    /**
+     * Retrieves daily revenue statistics for the last 7 days.
+     * 
+     * @return A map where keys are dates (formatted as strings) and values are total revenue
+     */
     public Map<String, Double> getRevenueByDate() {
         Map<String, Double> stats = new HashMap<>();
         // Grouping by DATE(order_time)
@@ -286,9 +322,6 @@ public class OrderDao {
             stmt.setLong(1, orderId);
             stmt.setBytes(2, pdfData);
             stmt.executeUpdate();
-            // If this method created its own connection (autocommit true usually), commit
-            // isn't explicitly needed but good practice if safe.
-            // But here we just rely on auto-commit if standalone.
         }
     }
 
@@ -300,7 +333,6 @@ public class OrderDao {
             stmt.setLong(1, orderId);
             stmt.setBytes(2, pdfData);
             stmt.executeUpdate();
-            // Do NOT close connection here!
         }
     }
 
