@@ -18,66 +18,76 @@ import java.util.List;
 
 public class PdfInvoiceUtil {
 
-    public static byte[] generateInvoice(Order order, List<OrderItem> items) {
-        try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
-            PdfWriter writer = new PdfWriter(baos);
-            PdfDocument pdf = new PdfDocument(writer);
-            Document document = new Document(pdf);
+        public static byte[] generateInvoice(Order order, List<OrderItem> items) {
+                try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
+                        PdfWriter writer = new PdfWriter(baos);
+                        PdfDocument pdf = new PdfDocument(writer);
+                        Document document = new Document(pdf);
 
-            // Title
-            document.add(new Paragraph("INVOICE")
-                    .setFontSize(20)
-                    .setBold()
-                    .setTextAlignment(TextAlignment.CENTER));
+                        // Title
+                        document.add(new Paragraph("INVOICE")
+                                        .setFontSize(20)
+                                        .setBold()
+                                        .setTextAlignment(TextAlignment.CENTER));
 
-            // Order Details
-            document.add(new Paragraph("\n"));
-            document.add(new Paragraph("Order ID: " + order.getId()));
-            document.add(new Paragraph(
-                    "Date: " + order.getOrderTime().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))));
-            document.add(new Paragraph("Customer ID: " + order.getCustomerId()));
-            if (order.getCarrierId() != null) {
-                document.add(new Paragraph("Carrier ID: " + order.getCarrierId()));
-            }
+                        // Order Details
+                        document.add(new Paragraph("\n"));
+                        document.add(new Paragraph("Order ID: " + order.getId()));
+                        document.add(new Paragraph(
+                                        "Date: " + order.getOrderTime()
+                                                        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"))));
+                        document.add(new Paragraph("Customer ID: " + order.getCustomerId()));
+                        if (order.getCarrierId() != null) {
+                                document.add(new Paragraph("Carrier ID: " + order.getCarrierId()));
+                        }
+                        if (order.getNote() != null && !order.getNote().isEmpty()) {
+                                document.add(new Paragraph("Note: " + order.getNote()));
+                        }
 
-            document.add(new Paragraph("\n"));
+                        document.add(new Paragraph("\n"));
 
-            // Table
-            Table table = new Table(UnitValue.createPercentArray(new float[] { 4, 2, 2, 2 })).useAllAvailableWidth();
-            table.addHeaderCell(
-                    new Cell().add(new Paragraph("Item").setBold().setBackgroundColor(ColorConstants.LIGHT_GRAY)));
-            table.addHeaderCell(
-                    new Cell().add(new Paragraph("Quantity").setBold().setBackgroundColor(ColorConstants.LIGHT_GRAY)));
-            table.addHeaderCell(new Cell()
-                    .add(new Paragraph("Unit Price").setBold().setBackgroundColor(ColorConstants.LIGHT_GRAY)));
-            table.addHeaderCell(
-                    new Cell().add(new Paragraph("Total").setBold().setBackgroundColor(ColorConstants.LIGHT_GRAY)));
+                        // Table
+                        Table table = new Table(UnitValue.createPercentArray(new float[] { 4, 2, 2, 2 }))
+                                        .useAllAvailableWidth();
+                        table.addHeaderCell(
+                                        new Cell().add(new Paragraph("Item").setBold()
+                                                        .setBackgroundColor(ColorConstants.LIGHT_GRAY)));
+                        table.addHeaderCell(
+                                        new Cell().add(new Paragraph("Quantity").setBold()
+                                                        .setBackgroundColor(ColorConstants.LIGHT_GRAY)));
+                        table.addHeaderCell(new Cell()
+                                        .add(new Paragraph("Unit Price").setBold()
+                                                        .setBackgroundColor(ColorConstants.LIGHT_GRAY)));
+                        table.addHeaderCell(
+                                        new Cell().add(new Paragraph("Total").setBold()
+                                                        .setBackgroundColor(ColorConstants.LIGHT_GRAY)));
 
-            for (OrderItem item : items) {
-                table.addCell(new Paragraph(item.getProductName()));
-                table.addCell(new Paragraph(item.getFormattedQuantity() + " " + item.getUnit()));
-                table.addCell(new Paragraph(item.getFormattedUnitPrice()));
-                table.addCell(new Paragraph(item.getFormattedLineTotal()));
-            }
+                        for (OrderItem item : items) {
+                                table.addCell(new Paragraph(item.getProductName()));
+                                table.addCell(new Paragraph(item.getFormattedQuantity() + " " + item.getUnit()));
+                                table.addCell(new Paragraph(item.getFormattedUnitPrice()));
+                                table.addCell(new Paragraph(item.getFormattedLineTotal()));
+                        }
 
-            document.add(table);
+                        document.add(table);
 
-            // Totals
-            document.add(new Paragraph("\n"));
-            document.add(new Paragraph(String.format("Subtotal: $%.2f", order.getSubtotal()))
-                    .setTextAlignment(TextAlignment.RIGHT));
-            document.add(new Paragraph(String.format("Discount: -$%.2f", order.getDiscountTotal()))
-                    .setTextAlignment(TextAlignment.RIGHT));
-            document.add(new Paragraph(String.format("VAT: $%.2f", order.getVatTotal()))
-                    .setTextAlignment(TextAlignment.RIGHT));
-            document.add(new Paragraph(String.format("Total: $%.2f", order.getTotal())).setBold().setFontSize(14)
-                    .setTextAlignment(TextAlignment.RIGHT));
+                        // Totals
+                        document.add(new Paragraph("\n"));
+                        document.add(new Paragraph(String.format("Subtotal: $%.2f", order.getSubtotal()))
+                                        .setTextAlignment(TextAlignment.RIGHT));
+                        document.add(new Paragraph(String.format("Discount: -$%.2f", order.getDiscountTotal()))
+                                        .setTextAlignment(TextAlignment.RIGHT));
+                        document.add(new Paragraph(String.format("VAT: $%.2f", order.getVatTotal()))
+                                        .setTextAlignment(TextAlignment.RIGHT));
+                        document.add(new Paragraph(String.format("Total: $%.2f", order.getTotal())).setBold()
+                                        .setFontSize(14)
+                                        .setTextAlignment(TextAlignment.RIGHT));
 
-            document.close();
-            return baos.toByteArray();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+                        document.close();
+                        return baos.toByteArray();
+                } catch (Exception e) {
+                        e.printStackTrace();
+                        return null;
+                }
         }
-    }
 }

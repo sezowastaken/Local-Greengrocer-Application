@@ -132,6 +132,7 @@ public class CustomerController {
                         ci.quantity,
                         ci.product.getPrice(),
                         ci.getTotalPrice());
+                oi.setProductName(ci.product.getName());
                 orderItems.add(oi);
             }
 
