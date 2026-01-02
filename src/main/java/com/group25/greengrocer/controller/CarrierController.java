@@ -131,8 +131,8 @@ public class CarrierController {
         this.carrierId = id;
         this.carrierUsername = username;
         welcomeText.setText(username);
-        updateRatingDisplay();
-        updateStats();
+        
+        handleRefreshAll();
     }
 
     private void updateStats() {
