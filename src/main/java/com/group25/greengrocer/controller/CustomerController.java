@@ -15,6 +15,12 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Region;
 import javafx.scene.text.Text;
 
+import javafx.scene.control.Dialog;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.Slider;
+import javafx.scene.layout.GridPane;
+
 import java.io.IOException;
 
 import java.util.List;
@@ -1217,6 +1223,7 @@ public class CustomerController {
 
     private final OrderDao orderDao = new OrderDao();
     private final MessageDao messageDao = new MessageDao();
+    private final com.group25.greengrocer.dao.CarrierRatingDao carrierRatingDao = new com.group25.greengrocer.dao.CarrierRatingDao();
 
     @FXML
     private void handleRefreshOrders() {
@@ -1252,7 +1259,10 @@ public class CustomerController {
         colOrderAction.setCellFactory(param -> new TableCell<>() {
             private final javafx.scene.control.Button btnInvoice = new javafx.scene.control.Button("Invoice");
             private final javafx.scene.control.Button btnCancel = new javafx.scene.control.Button("Cancel");
-            private final javafx.scene.layout.HBox pane = new javafx.scene.layout.HBox(5, btnInvoice, btnCancel);
+            private final javafx.scene.control.Button btnRate = new javafx.scene.control.Button("Rate"); // New Rate
+                                                                                                         // Button
+            private final javafx.scene.layout.HBox pane = new javafx.scene.layout.HBox(5, btnInvoice, btnCancel,
+                    btnRate);
 
             {
                 btnInvoice.getStyleClass().add("button-secondary");
@@ -1265,6 +1275,12 @@ public class CustomerController {
                 btnCancel.setOnAction(event -> {
                     Order order = getTableView().getItems().get(getIndex());
                     handleCancelOrder(order.getId());
+                });
+
+                btnRate.getStyleClass().add("button-primary");
+                btnRate.setOnAction(event -> {
+                    Order order = getTableView().getItems().get(getIndex());
+                    handleRateOrder(order);
                 });
             }
 
@@ -1281,8 +1297,73 @@ public class CustomerController {
                     if (order.getStatus() == com.group25.greengrocer.model.OrderStatus.PLACED) {
                         pane.getChildren().add(btnCancel);
                     }
+
+                    // Rating Logic
+                    if (order.getStatus() == com.group25.greengrocer.model.OrderStatus.DELIVERED
+                            && !carrierRatingDao.hasRated(order.getId())) {
+                        pane.getChildren().add(btnRate);
+                    }
+
                     setGraphic(pane);
                 }
+            }
+        });
+    }
+
+    private void handleRateOrder(Order order) {
+        // Create custom dialog
+        Dialog<com.group25.greengrocer.model.CarrierRating> dialog = new Dialog<>();
+        dialog.setTitle("Rate Order #" + order.getId());
+        dialog.setHeaderText("Rate your delivery experience");
+
+        ButtonType submitButtonType = new ButtonType("Submit", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(submitButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new javafx.geometry.Insets(20, 150, 10, 10));
+
+        Slider ratingSlider = new Slider(1, 5, 5);
+        ratingSlider.setMajorTickUnit(1);
+        ratingSlider.setMinorTickCount(0);
+        ratingSlider.setShowTickLabels(true);
+        ratingSlider.setSnapToTicks(true);
+
+        grid.add(new Label("Rating (1-5):"), 0, 0);
+        grid.add(ratingSlider, 1, 0);
+
+        dialog.getDialogPane().setContent(grid);
+
+        // Convert result
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == submitButtonType) {
+                int rating = (int) ratingSlider.getValue();
+                // carrierId might be null checking needed? Order status is DELIVERED so
+                // carrierId SHOULD be set.
+                int carrierId = (order.getCarrierId() != null) ? order.getCarrierId().intValue() : 0;
+
+                return new com.group25.greengrocer.model.CarrierRating(0, (int) order.getId(), (int) customerId,
+                        carrierId, rating, null, null);
+            }
+            return null;
+        });
+
+        java.util.Optional<com.group25.greengrocer.model.CarrierRating> result = dialog.showAndWait();
+
+        result.ifPresent(rating -> {
+            try {
+                if (rating.getCarrierId() == 0) {
+                    showAlert(Alert.AlertType.ERROR, "Error",
+                            "Cannot rate: No carrier linked to this delivered order (Data Error).");
+                    return;
+                }
+                carrierRatingDao.addRating(rating);
+                showAlert(Alert.AlertType.INFORMATION, "Success", "Thank you for your feedback!");
+                refreshOrders(); // Refresh to hide the button
+            } catch (Exception e) {
+                e.printStackTrace();
+                showAlert(Alert.AlertType.ERROR, "Error", "Failed to submit rating: " + e.getMessage());
             }
         });
     }
