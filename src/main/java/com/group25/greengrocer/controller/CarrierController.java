@@ -131,7 +131,7 @@ public class CarrierController {
         this.carrierId = id;
         this.carrierUsername = username;
         welcomeText.setText(username);
-        
+
         handleRefreshAll();
     }
 
@@ -558,7 +558,7 @@ public class CarrierController {
     private void styleAlert(Alert alert, String styleClass) {
         DialogPane dialogPane = alert.getDialogPane();
         try {
-            dialogPane.getStylesheets().add(getClass().getResource("/css/app.css").toExternalForm());
+            dialogPane.getStylesheets().add(getClass().getResource("/css/carrier.css").toExternalForm());
             dialogPane.getStyleClass().add("custom-alert");
             dialogPane.getStyleClass().add(styleClass);
         } catch (Exception e) {

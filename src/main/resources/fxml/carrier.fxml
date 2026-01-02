@@ -10,7 +10,7 @@
            fx:controller="com.group25.greengrocer.controller.CarrierController"
            prefWidth="960" prefHeight="540"
            styleClass="carrier-root"
-           stylesheets="@../css/app.css">
+           stylesheets="@../css/carrier.css">
     
     <!-- Main Carrier Panel -->
     <BorderPane>
