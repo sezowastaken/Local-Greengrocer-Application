@@ -61,6 +61,20 @@ public class UserDao {
         return 0;
     }
 
+    public Integer getPrimaryOwnerId() {
+        String query = "SELECT id FROM users WHERE role = 'owner' LIMIT 1";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt("id");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public void addCarrier(String username, String password) {
         String query = "INSERT INTO users (username, password_hash, role, status) VALUES (?, ?, 'carrier', 'APPROVED')";
         try (Connection conn = DbAdapter.getConnection();
@@ -417,5 +431,94 @@ public class UserDao {
             e.printStackTrace();
         }
         return null;
+    }
+
+    /**
+     * Get all customers with their loyalty tier information
+     * Calculates tier based on total spending from delivered orders
+     */
+    public java.util.List<com.group25.greengrocer.model.CustomerLoyalty> getAllCustomerLoyalty() {
+        java.util.List<com.group25.greengrocer.model.CustomerLoyalty> loyaltyList = new java.util.ArrayList<>();
+
+        String query = "SELECT u.id, u.username, COALESCE(SUM(o.total), 0) as total_spent " +
+                "FROM users u " +
+                "LEFT JOIN orders o ON u.id = o.customer_id AND o.status = 'DELIVERED' " +
+                "WHERE u.role = 'customer' " +
+                "GROUP BY u.id, u.username " +
+                "ORDER BY total_spent DESC";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                long customerId = rs.getLong("id");
+                String username = rs.getString("username");
+                double totalSpent = rs.getDouble("total_spent");
+
+                loyaltyList.add(new com.group25.greengrocer.model.CustomerLoyalty(
+                        customerId, username, totalSpent));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return loyaltyList;
+    }
+
+    /**
+     * Search customers by username with loyalty information
+     */
+    public java.util.List<com.group25.greengrocer.model.CustomerLoyalty> searchCustomerLoyalty(String searchQuery) {
+        java.util.List<com.group25.greengrocer.model.CustomerLoyalty> loyaltyList = new java.util.ArrayList<>();
+
+        String query = "SELECT u.id, u.username, COALESCE(SUM(o.total), 0) as total_spent " +
+                "FROM users u " +
+                "LEFT JOIN orders o ON u.id = o.customer_id AND o.status = 'DELIVERED' " +
+                "WHERE u.role = 'customer' AND u.username LIKE ? " +
+                "GROUP BY u.id, u.username " +
+                "ORDER BY total_spent DESC";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+
+            stmt.setString(1, "%" + searchQuery + "%");
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    long customerId = rs.getLong("id");
+                    String username = rs.getString("username");
+                    double totalSpent = rs.getDouble("total_spent");
+
+                    loyaltyList.add(new com.group25.greengrocer.model.CustomerLoyalty(
+                            customerId, username, totalSpent));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return loyaltyList;
+    }
+
+    /**
+     * Update customer's individual_loyalty_rate based on tier
+     * Converts percentage to decimal (e.g., 5% -> 0.05)
+     */
+    public void updateCustomerLoyaltyRate(long customerId, int discountPercentage) {
+        String query = "UPDATE users SET individual_loyalty_rate = ? WHERE id = ?";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+
+            // Convert percentage to decimal (5% -> 0.05)
+            java.math.BigDecimal rate = new java.math.BigDecimal(discountPercentage / 100.0);
+            stmt.setBigDecimal(1, rate);
+            stmt.setLong(2, customerId);
+
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }

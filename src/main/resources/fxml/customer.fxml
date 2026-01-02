@@ -11,30 +11,50 @@
         <HBox spacing="20" alignment="CENTER_LEFT" style="-fx-padding: 15; -fx-background-color: white; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.1), 0, 0, 5, 0);">
             <Text fx:id="welcomeText" text="Welcome, Customer" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-fill: #2e7d32;"/>
             <Region HBox.hgrow="ALWAYS"/>
-            <Button text="Shop" onAction="#handleBackToShop" styleClass="button-secondary"/>
-            <Button text="My Cart" onAction="#handleViewCart" styleClass="button-primary"/>
-            <Button text="Orders" onAction="#handleViewOrders" styleClass="button-secondary"/>
-            <Button text="Messages" onAction="#handleViewMessages" styleClass="button-secondary"/>
-            <Button text="Profile" onAction="#handleShowProfile" styleClass="profile-btn"/>
-            <Button text="Logout" onAction="#handleLogout" style="-fx-background-color: transparent; -fx-text-fill: #666; -fx-cursor: hand;"/>
+            <HBox spacing="12" alignment="CENTER_RIGHT">
+                <Button fx:id="shopButton" text="Shop" onAction="#handleBackToShop" styleClass="button-outline" prefWidth="120"/>
+                <Button fx:id="cartButton" text="My Cart" onAction="#handleViewCart" styleClass="button-primary" prefWidth="120"/>
+                <MenuButton fx:id="menuButton" text="Menu" styleClass="menu-button-custom" prefWidth="120">
+                    <items>
+                        <MenuItem text="My Profile" onAction="#handleViewProfile" styleClass="profile-btn"/>
+                        <MenuItem text="Order History" onAction="#handleViewOrders" styleClass="button-secondary"/>
+                        <MenuItem text="Logout" onAction="#handleLogout" style="-fx-background-color: transparent; -fx-text-fill: #666; -fx-cursor: hand;"/>
+                        <MenuItem text="Messages" onAction="#handleViewMessages" styleClass="button-secondary"/>
+                    </items>
+                </MenuButton>
+            </HBox>
         </HBox>
     </top>
     
     <center>
-        <StackPane>
-            <!-- Product View -->
-            <TabPane fx:id="productTabPane" tabClosingPolicy="UNAVAILABLE" style="-fx-background-color: transparent;">
-                <Tab text="Vegetables">
-                    <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-padding: 20;">
-                        <FlowPane fx:id="vegPane" hgap="20" vgap="20" style="-fx-background-color: transparent;"/>
-                    </ScrollPane>
-                </Tab>
-                <Tab text="Fruits">
-                    <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-padding: 20;">
-                        <FlowPane fx:id="fruitPane" hgap="20" vgap="20" style="-fx-background-color: transparent;"/>
-                    </ScrollPane>
-                </Tab>
-            </TabPane>
+        <VBox spacing="0" style="-fx-background-color: transparent;">
+            <!-- Selector Bar -->
+            <!-- Selector Bar (Smaller & compact) -->
+            <HBox fx:id="selectorBar" alignment="CENTER" spacing="10" style="-fx-padding: 10 0 10 0;">
+                <ToggleButton fx:id="vegetablesToggle" styleClass="selector-toggle" prefWidth="110" prefHeight="40">
+                    <toggleGroup>
+                        <ToggleGroup fx:id="categoryToggleGroup"/>
+                    </toggleGroup>
+                </ToggleButton>
+                <ToggleButton fx:id="fruitsToggle" toggleGroup="$categoryToggleGroup" styleClass="selector-toggle" prefWidth="110" prefHeight="40"/>
+            </HBox>
+
+            <!-- Responsive Modern Separator (maxWidth limited but responsive using Layout constraints) -->
+            <VBox alignment="CENTER" style="-fx-padding: 0 0 10 0;">
+                <Region styleClass="modern-separator-line" maxWidth="800" prefWidth="2000" prefHeight="1"/>
+            </VBox>
+
+            <!-- Content Area -->
+            <StackPane VBox.vgrow="ALWAYS">
+                <!-- Vegetables View -->
+                <ScrollPane fx:id="vegetableView" fitToWidth="true" style="-fx-background-color: transparent; -fx-padding: 15 20 20 20;">
+                    <FlowPane fx:id="vegPane" alignment="CENTER" hgap="20" vgap="25" style="-fx-background-color: transparent; -fx-padding: 10 0 0 0;"/>
+                </ScrollPane>
+
+                <!-- Fruits View -->
+                <ScrollPane fx:id="fruitView" fitToWidth="true" visible="false" managed="false" style="-fx-background-color: transparent; -fx-padding: 15 20 20 20;">
+                    <FlowPane fx:id="fruitPane" alignment="CENTER" hgap="20" vgap="25" style="-fx-background-color: transparent; -fx-padding: 10 0 0 0;"/>
+                </ScrollPane>
 
             <!-- Cart View (Initially Hidden) -->
             <VBox fx:id="cartView" visible="false" spacing="20" style="-fx-background-color: white; -fx-padding: 30;" alignment="TOP_CENTER">
@@ -54,8 +74,85 @@
                     <Button text="Checkout" onAction="#handlePlaceOrder" styleClass="button-primary" style="-fx-font-size: 16px; -fx-padding: 10 30;"/>
                 </HBox>
             </VBox>
+            
+            <!-- Profile View (Initially Hidden) -->
+            <ScrollPane fx:id="profileView" visible="false" fitToWidth="true" style="-fx-background-color: white; -fx-padding: 20;" maxWidth="700">
+                 <VBox spacing="20" alignment="TOP_CENTER">
+                     <Text text="My Profile" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-fill: #2e7d32;"/>
+                     
+                     <GridPane vgap="10" hgap="15" alignment="CENTER_LEFT" style="-fx-max-width: 500;">
+                        <columnConstraints>
+                            <ColumnConstraints minWidth="120" prefWidth="120" halignment="RIGHT"/>
+                            <ColumnConstraints hgrow="ALWAYS" />
+                        </columnConstraints>
 
-            <!-- Orders View (Initially Hidden) -->
+                        <!-- Username -->
+                        <Label text="Username:" GridPane.rowIndex="0" GridPane.columnIndex="0" style="-fx-font-weight: bold;"/>
+                        <VBox GridPane.rowIndex="0" GridPane.columnIndex="1" spacing="2">
+                            <TextField fx:id="profileNameField" editable="true" prefWidth="300"/>
+                            <Label fx:id="usernameErrorLabel" text="" styleClass="error-label" visible="false" managed="false" style="-fx-font-size: 11px;"/>
+                        </VBox>
+
+                        <!-- Address -->
+                        <Label text="Address Line:" GridPane.rowIndex="1" GridPane.columnIndex="0" style="-fx-font-weight: bold;"/>
+                        <VBox GridPane.rowIndex="1" GridPane.columnIndex="1" spacing="2">
+                            <TextArea fx:id="profileAddressField" prefWidth="300" prefHeight="60" wrapText="true"/>
+                            <Label fx:id="addressErrorLabel" text="" styleClass="error-label" visible="false" managed="false" style="-fx-font-size: 11px;"/>
+                        </VBox>
+
+                        <!-- City -->
+                        <Label text="City:" GridPane.rowIndex="2" GridPane.columnIndex="0" style="-fx-font-weight: bold;"/>
+                        <VBox GridPane.rowIndex="2" GridPane.columnIndex="1" spacing="2">
+                            <ComboBox fx:id="profileCityCombo" prefWidth="300" editable="true"/>
+                            <Label fx:id="cityErrorLabel" text="" styleClass="error-label" visible="false" managed="false" style="-fx-font-size: 11px;"/>
+                        </VBox>
+
+                        <!-- Phone -->
+                        <Label text="Phone:" GridPane.rowIndex="3" GridPane.columnIndex="0" style="-fx-font-weight: bold;"/>
+                        <VBox GridPane.rowIndex="3" GridPane.columnIndex="1" spacing="2">
+                            <TextField fx:id="profilePhoneField" prefWidth="300" promptText="5321234567"/>
+                            <Label fx:id="phoneErrorLabel" text="" styleClass="error-label" visible="false" managed="false" style="-fx-font-size: 11px;"/>
+                        </VBox>
+                     </GridPane>
+
+                     <HBox spacing="20" alignment="CENTER" style="-fx-padding: 10 0 20 0;">
+                        <Button text="Back" onAction="#handleBackToShop" styleClass="button-secondary"/>
+                        <Button fx:id="saveProfileButton" text="Save Changes" onAction="#handleSaveProfile" styleClass="button-primary"/>
+                     </HBox>
+
+                     <Separator orientation="HORIZONTAL"/>
+
+                     <!-- Change Password Section -->
+                     <VBox spacing="10" alignment="TOP_CENTER" style="-fx-max-width: 500; -fx-padding: 10; -fx-background-color: #fafafa; -fx-background-radius: 5; -fx-border-color: #eee; -fx-border-radius: 5;">
+                        <Label text="Change Password" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #555;"/>
+                        
+                        <GridPane vgap="10" hgap="15" alignment="CENTER_LEFT">
+                             <columnConstraints>
+                                <ColumnConstraints minWidth="130" prefWidth="130" halignment="RIGHT"/>
+                                <ColumnConstraints hgrow="ALWAYS" />
+                            </columnConstraints>
+
+                            <Label text="Current Password:" GridPane.rowIndex="0" GridPane.columnIndex="0"/>
+                            <PasswordField fx:id="currentPasswordField" GridPane.rowIndex="0" GridPane.columnIndex="1"/>
+
+                            <Label text="New Password:" GridPane.rowIndex="1" GridPane.columnIndex="0"/>
+                            <PasswordField fx:id="newPasswordField" GridPane.rowIndex="1" GridPane.columnIndex="1"/>
+
+                            <Label text="Confirm Password:" GridPane.rowIndex="2" GridPane.columnIndex="0"/>
+                            <VBox GridPane.rowIndex="2" GridPane.columnIndex="1" spacing="2">
+                                <PasswordField fx:id="confirmPasswordField"/>
+                                <Label fx:id="passwordErrorLabel" text="" styleClass="error-label" visible="false" managed="false" style="-fx-font-size: 11px;"/>
+                            </VBox>
+                        </GridPane>
+
+                        <HBox alignment="CENTER_RIGHT" spacing="10" style="-fx-padding: 10 0 0 0;">
+                             <Button text="Update Password" onAction="#handleChangePassword" styleClass="button-outline"/>
+                        </HBox>
+                     </VBox>
+                 </VBox>
+            </ScrollPane>
+
+           <!-- Orders View (Initially Hidden) -->
             <VBox fx:id="ordersView" visible="false" spacing="20" style="-fx-background-color: white; -fx-padding: 30;">
                 <HBox alignment="CENTER_LEFT">
                      <Text text="My Order History" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-fill: #2e7d32;"/>
@@ -104,6 +201,8 @@
                     <Button text="Send" onAction="#handleSendMessage" styleClass="button-primary" prefHeight="90" prefWidth="80"/>
                 </HBox>
             </VBox>
-        </StackPane>
+            
+            </StackPane>
+        </VBox>
     </center>
 </BorderPane>
