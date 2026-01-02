@@ -170,6 +170,8 @@ public class CustomerController {
     @FXML
     private BorderPane paymentView;
     @FXML
+    private VBox paymentItemsContainer;
+    @FXML
     private TextArea paymentNoteArea;
     @FXML
     private Label paymentTotalLabel;
@@ -232,6 +234,36 @@ public class CustomerController {
         appliedCoupon = null;
         couponCodeField.clear();
         couponMessageLabel.setText("");
+
+        // Populate Payment Items List (Left Column)
+        paymentItemsContainer.getChildren().clear();
+        for (CartItem item : cart) {
+            HBox row = new HBox(10);
+            row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+            row.setStyle("-fx-padding: 5; -fx-border-color: #eee; -fx-border-width: 0 0 1 0;");
+
+            Label name = new Label(item.product.getName());
+            name.setStyle("-fx-font-weight: bold;");
+            name.setWrapText(true);
+            name.setPrefWidth(Region.USE_COMPUTED_SIZE);
+
+            // Name should grow to fill space
+            HBox.setHgrow(name, javafx.scene.layout.Priority.ALWAYS);
+
+            Label qty = new Label(String.format("x %.2f %s", item.quantity, item.product.isPiece() ? "qty" : "kg"));
+            qty.setMinWidth(80); // Ensure min width for alignment
+            qty.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+            qty.setStyle("-fx-text-fill: #666;");
+
+            Label price = new Label(String.format("$%.2f", item.getTotalPrice()));
+            price.setMinWidth(70); // Fixed width for price alignment
+            price.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+            price.setStyle("-fx-font-weight: bold; -fx-text-fill: #2e7d32;");
+
+            // Removed spacer, now Name grows. Structure: [Name (grows)] [Qty] [Price]
+            row.getChildren().addAll(name, qty, price);
+            paymentItemsContainer.getChildren().add(row);
+        }
 
         recalculatePaymentTotal();
     }

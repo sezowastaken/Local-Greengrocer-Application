@@ -84,7 +84,7 @@
             
             <!-- Payment View (Initially Hidden) -->
             <!-- Payment View (Initially Hidden) -->
-            <BorderPane fx:id="paymentView" visible="false" style="-fx-background-color: white; -fx-padding: 30;" maxWidth="600">
+            <BorderPane fx:id="paymentView" visible="false" style="-fx-background-color: white; -fx-padding: 30;" maxWidth="1000">
                 <top>
                     <VBox alignment="TOP_CENTER" style="-fx-padding: 0 0 20 0;">
                         <Text text="Secure Checkout" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-fill: #2e7d32;"/>
@@ -93,78 +93,92 @@
                 
                 <center>
                     <ScrollPane fitToWidth="true" style="-fx-background-color: transparent; -fx-background: white;">
-                        <VBox spacing="20" alignment="TOP_CENTER" style="-fx-padding: 10;">
-                            <Label text="Order Summary" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+                        <HBox spacing="40" alignment="TOP_CENTER" style="-fx-padding: 20;">
                             
-                            <VBox spacing="5" style="-fx-padding: 0 0 10 0;">
-                                <HBox alignment="CENTER_LEFT" spacing="10">
-                                    <Label text="Subtotal:" style="-fx-font-weight: bold;"/>
-                                    <Region HBox.hgrow="ALWAYS" />
-                                    <Label fx:id="paymentSubtotalLabel" text="\$0.00"/>
-                                </HBox>
-                                <HBox alignment="CENTER_LEFT" spacing="10">
-                                    <Label text="Loyalty Discount:" style="-fx-text-fill: #2e7d32;"/>
-                                    <Region HBox.hgrow="ALWAYS" />
-                                    <Label fx:id="paymentLoyaltyLabel" text="-\$0.00" style="-fx-text-fill: #2e7d32;"/>
-                                </HBox>
-                                 <HBox alignment="CENTER_LEFT" spacing="10">
-                                    <Label text="Coupon Discount:" style="-fx-text-fill: #e67e22;"/>
-                                    <Region HBox.hgrow="ALWAYS" />
-                                    <Label fx:id="paymentCouponLabel" text="-\$0.00" style="-fx-text-fill: #e67e22;"/>
-                                </HBox>
-                            </VBox>
-            
-                            <HBox spacing="10" alignment="CENTER">
-                                <Label text="Total Amount to Pay:" style="-fx-font-size: 16px;"/>
-                                <Label fx:id="paymentTotalLabel" text="\$0.00" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #2e7d32;"/>
-                            </HBox>
-                            
-                            <Separator/>
-                            
-                            <!-- Coupon Section -->
-                            <VBox spacing="5" alignment="CENTER_LEFT" maxWidth="400">
-                                 <Label text="Have a Coupon?" style="-fx-font-weight: bold;"/>
-                                 <HBox spacing="10">
-                                     <TextField fx:id="couponCodeField" promptText="Enter Coupon Code" HBox.hgrow="ALWAYS"/>
-                                     <Button text="Apply" onAction="#handleApplyCoupon" styleClass="button-outline"/>
-                                 </HBox>
-                                 <Label fx:id="couponMessageLabel" text="" style="-fx-font-size: 12px;"/>
-                            </VBox>
-                            
-                            <Separator/>
-                            
-                            <VBox spacing="10" alignment="CENTER_LEFT" maxWidth="400">
-                                <Label text="Note for Courier (Optional)" style="-fx-font-weight: bold;"/>
-                                <TextArea fx:id="paymentNoteArea" promptText="E.g. Please ring the bell, leave at door..." prefHeight="80" wrapText="true" style="-fx-border-color: #ddd; -fx-background-radius: 5;"/>
-                            </VBox>
-                            
-                            <Separator/>
-                            
-                            <VBox spacing="15" alignment="CENTER_LEFT" maxWidth="400" style="-fx-background-color: #f9f9f9; -fx-padding: 20; -fx-background-radius: 10; -fx-border-color: #eee;">
-                                <Label text="Payment Method" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                            <!-- LEFT COLUMN: Products & Note -->
+                            <VBox spacing="20" HBox.hgrow="ALWAYS" maxWidth="600">
+                                <!-- Product List Section -->
+                                <VBox spacing="10" VBox.vgrow="ALWAYS">
+                                    <Label text="Your Items" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #333;"/>
+                                    <VBox fx:id="paymentItemsContainer" spacing="10" style="-fx-background-color: #f9f9f9; -fx-padding: 20; -fx-background-radius: 8; -fx-border-color: #eee; -fx-border-radius: 8;" VBox.vgrow="ALWAYS"/>
+                                </VBox>
                                 
-                                <HBox spacing="15" alignment="CENTER_LEFT" style="-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 5; -fx-border-color: #ddd;">
-                                    <Label text="💵" style="-fx-font-size: 24px;"/>
-                                    <VBox>
-                                        <Label text="Cash on Delivery" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
-                                        <Label text="Pay when you receive your order" style="-fx-text-fill: #666; -fx-font-size: 12px;"/>
-                                    </VBox>
-                                    <Region HBox.hgrow="ALWAYS"/>
-                                    <Label text="SELECTED" style="-fx-background-color: #e8f5e9; -fx-text-fill: #2e7d32; -fx-padding: 3 8; -fx-background-radius: 10; -fx-font-size: 10px; -fx-font-weight: bold;"/>
-                                </HBox>
-            
-                                <!-- Credit Card (Coming Soon) -->
-                                <HBox spacing="15" alignment="CENTER_LEFT" style="-fx-background-color: #f0f0f0; -fx-padding: 15; -fx-background-radius: 5; -fx-border-color: #ddd; -fx-opacity: 0.7;">
-                                    <Label text="💳" style="-fx-font-size: 24px; -fx-opacity: 0.5;"/>
-                                    <VBox>
-                                        <Label text="Credit Card" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #888;"/>
-                                        <Label text="Pay securely with credit card" style="-fx-text-fill: #999; -fx-font-size: 12px;"/>
-                                    </VBox>
-                                    <Region HBox.hgrow="ALWAYS"/>
-                                    <Label text="COMING SOON" style="-fx-background-color: #eee; -fx-text-fill: #666; -fx-padding: 3 8; -fx-background-radius: 10; -fx-font-size: 10px; -fx-font-weight: bold;"/>
-                                </HBox>
+                                <!-- Note Section -->
+                                <VBox spacing="10">
+                                    <Label text="Note for Courier (Optional)" style="-fx-font-weight: bold;"/>
+                                    <TextArea fx:id="paymentNoteArea" promptText="E.g. Please ring the bell, leave at door..." prefHeight="120" wrapText="true" style="-fx-border-color: #ddd; -fx-background-radius: 5;"/>
+                                </VBox>
                             </VBox>
-                        </VBox>
+                            
+                            <!-- RIGHT COLUMN: Financials, Coupon, Payment Method -->
+                            <VBox spacing="20" maxWidth="400" minWidth="350" HBox.hgrow="NEVER">
+                                <!-- Financial Summary -->
+                                <VBox spacing="15" style="-fx-background-color: white; -fx-padding: 20; -fx-border-color: #eee; -fx-border-radius: 8; -fx-background-radius: 8; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.05), 5, 0, 0, 2);">
+                                    <Label text="Order Summary" style="-fx-font-size: 18px; -fx-font-weight: bold;"/>
+                                    
+                                    <VBox spacing="8">
+                                        <HBox alignment="CENTER_LEFT" spacing="10">
+                                            <Label text="Subtotal:" style="-fx-font-weight: bold;"/>
+                                            <Region HBox.hgrow="ALWAYS" />
+                                            <Label fx:id="paymentSubtotalLabel" text="\$0.00"/>
+                                        </HBox>
+                                        <HBox alignment="CENTER_LEFT" spacing="10">
+                                            <Label text="Loyalty Discount:" style="-fx-text-fill: #2e7d32;"/>
+                                            <Region HBox.hgrow="ALWAYS" />
+                                            <Label fx:id="paymentLoyaltyLabel" text="-\$0.00" style="-fx-text-fill: #2e7d32;"/>
+                                        </HBox>
+                                         <HBox alignment="CENTER_LEFT" spacing="10">
+                                            <Label text="Coupon Discount:" style="-fx-text-fill: #e67e22;"/>
+                                            <Region HBox.hgrow="ALWAYS" />
+                                            <Label fx:id="paymentCouponLabel" text="-\$0.00" style="-fx-text-fill: #e67e22;"/>
+                                        </HBox>
+                                    </VBox>
+                    
+                                    <Separator/>
+                                    
+                                    <HBox spacing="10" alignment="CENTER_RIGHT">
+                                        <Label text="Total to Pay:" style="-fx-font-size: 16px;"/>
+                                        <Label fx:id="paymentTotalLabel" text="\$0.00" style="-fx-font-size: 22px; -fx-font-weight: bold; -fx-text-fill: #2e7d32;"/>
+                                    </HBox>
+                                </VBox>
+                                
+                                <!-- Coupon Section -->
+                                <VBox spacing="10" style="-fx-background-color: white; -fx-padding: 20; -fx-border-color: #eee; -fx-border-radius: 8; -fx-background-radius: 8;">
+                                     <Label text="Have a Coupon?" style="-fx-font-weight: bold;"/>
+                                     <HBox spacing="10">
+                                         <TextField fx:id="couponCodeField" promptText="Code" HBox.hgrow="ALWAYS"/>
+                                         <Button text="Apply" onAction="#handleApplyCoupon" styleClass="button-outline"/>
+                                     </HBox>
+                                     <Label fx:id="couponMessageLabel" text="" style="-fx-font-size: 12px;"/>
+                                </VBox>
+                                
+                                <!-- Payment Method -->
+                                <VBox spacing="15" style="-fx-background-color: #f9f9f9; -fx-padding: 20; -fx-background-radius: 10; -fx-border-color: #eee;">
+                                    <Label text="Payment Method" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                                    
+                                    <HBox spacing="15" alignment="CENTER_LEFT" style="-fx-background-color: white; -fx-padding: 15; -fx-background-radius: 5; -fx-border-color: #ddd;">
+                                        <Label text="💵" style="-fx-font-size: 24px;"/>
+                                        <VBox>
+                                            <Label text="Cash on Delivery" style="-fx-font-size: 16px; -fx-font-weight: bold;"/>
+                                            <Label text="Pay on receipt" style="-fx-text-fill: #666; -fx-font-size: 12px;"/>
+                                        </VBox>
+                                        <Region HBox.hgrow="ALWAYS"/>
+                                        <Label text="SELECTED" style="-fx-background-color: #e8f5e9; -fx-text-fill: #2e7d32; -fx-padding: 3 8; -fx-background-radius: 10; -fx-font-size: 10px; -fx-font-weight: bold;"/>
+                                    </HBox>
+                
+                                    <!-- Credit Card (Coming Soon) -->
+                                    <HBox spacing="15" alignment="CENTER_LEFT" style="-fx-background-color: #f0f0f0; -fx-padding: 15; -fx-background-radius: 5; -fx-border-color: #ddd; -fx-opacity: 0.7;">
+                                        <Label text="💳" style="-fx-font-size: 24px; -fx-opacity: 0.5;"/>
+                                        <VBox>
+                                            <Label text="Credit Card" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-text-fill: #888;"/>
+                                            <Label text="Secure Payment" style="-fx-text-fill: #999; -fx-font-size: 12px;"/>
+                                        </VBox>
+                                        <Region HBox.hgrow="ALWAYS"/>
+                                        <Label text="COMING SOON" style="-fx-background-color: #eee; -fx-text-fill: #666; -fx-padding: 3 8; -fx-background-radius: 10; -fx-font-size: 10px; -fx-font-weight: bold;"/>
+                                    </HBox>
+                                </VBox>
+                            </VBox>
+                        </HBox>
                     </ScrollPane>
                 </center>
 
