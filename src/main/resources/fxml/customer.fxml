@@ -152,13 +152,26 @@
                  </VBox>
             </ScrollPane>
 
-            <!-- Order History View (Initially Hidden) -->
-            <VBox fx:id="orderHistoryView" visible="false" spacing="20" style="-fx-background-color: white; -fx-padding: 30;" alignment="TOP_CENTER">
-                 <Text text="Order History" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-fill: #2e7d32;"/>
-                 <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background-color: transparent; -fx-background: white;">
-                     <VBox fx:id="ordersContainer" spacing="10"/>
-                 </ScrollPane>
-                 <Button text="Back" onAction="#handleBackToShop" styleClass="button-secondary"/>
+           <!-- Orders View (Initially Hidden) -->
+            <VBox fx:id="ordersView" visible="false" spacing="20" style="-fx-background-color: white; -fx-padding: 30;">
+                <HBox alignment="CENTER_LEFT">
+                     <Text text="My Order History" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-fill: #2e7d32;"/>
+                     <Region HBox.hgrow="ALWAYS"/>
+                     <Button text="Refresh" onAction="#handleRefreshOrders" styleClass="button-secondary"/>
+                     <Button text="Back to Shop" onAction="#handleBackToShop" styleClass="button-secondary" style="-fx-margin-left: 10;"/>
+                </HBox>
+                <TableView fx:id="ordersTable" VBox.vgrow="ALWAYS">
+                    <columns>
+                        <TableColumn fx:id="colOrderId" text="Order ID" prefWidth="80"/>
+                        <TableColumn fx:id="colOrderDate" text="Date" prefWidth="150"/>
+                        <TableColumn fx:id="colOrderTotal" text="Total" prefWidth="100"/>
+                        <TableColumn fx:id="colOrderStatus" text="Status" prefWidth="100"/>
+                        <TableColumn fx:id="colOrderAction" text="Action" prefWidth="150"/>
+                    </columns>
+                    <columnResizePolicy>
+                        <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                    </columnResizePolicy>
+                </TableView>
             </VBox>
 
             <!-- Messages View (Initially Hidden) -->

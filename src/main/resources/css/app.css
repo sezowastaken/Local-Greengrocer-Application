@@ -2027,3 +2027,11 @@ OLD CARRIER PANEL STYLES (BACKUP)
 .carrier-popup-close-btn:hover {
     -fx-background-color: #7f8c8d;
 }
+
+.table-row-cell:hover { -fx-effect: null; }
+
+.table-row-cell:hover { -fx-effect: null; }
+
+/* Force Table Text Color */
+.table-view .table-cell { -fx-text-fill: #2c3e50; -fx-alignment: CENTER-LEFT; }
+.table-row-cell:selected .table-cell { -fx-text-fill: #1976d2; }

@@ -61,6 +61,20 @@ public class UserDao {
         return 0;
     }
 
+    public Integer getPrimaryOwnerId() {
+        String query = "SELECT id FROM users WHERE role = 'owner' LIMIT 1";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt("id");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
     public void addCarrier(String username, String password) {
         String query = "INSERT INTO users (username, password_hash, role, status) VALUES (?, ?, 'carrier', 'APPROVED')";
         try (Connection conn = DbAdapter.getConnection();
