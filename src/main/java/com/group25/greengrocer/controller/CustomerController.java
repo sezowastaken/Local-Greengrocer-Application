@@ -28,7 +28,7 @@ import com.group25.greengrocer.dao.MessageDao;
 import com.group25.greengrocer.dao.OrderDao;
 import java.io.File;
 import java.io.FileOutputStream;
-import javafx.stage.FileChooser;
+
 
 import javafx.collections.ObservableList;
 import com.group25.greengrocer.dao.UserDao;
@@ -1143,21 +1143,25 @@ public class CustomerController {
                 return;
             }
 
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.setTitle("Save Invoice");
-            fileChooser.setInitialFileName("invoice_" + order.getId() + ".pdf");
-            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF Files", "*.pdf"));
-            File file = fileChooser.showSaveDialog(ordersView.getScene().getWindow());
+            // Create a temporary file
+            File tempFile = File.createTempFile("invoice_" + order.getId() + "_", ".pdf");
+            tempFile.deleteOnExit(); // File will be deleted when the VM exits (optional, maybe user wants to keep it
+                                     // open)
 
-            if (file != null) {
-                try (FileOutputStream fos = new FileOutputStream(file)) {
-                    fos.write(pdfData);
-                    showAlert(Alert.AlertType.INFORMATION, "Success", "Invoice saved successfully.");
-                }
+            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                fos.write(pdfData);
             }
+
+            // Open the file
+            if (java.awt.Desktop.isDesktopSupported()) {
+                java.awt.Desktop.getDesktop().open(tempFile);
+            } else {
+                showAlert(Alert.AlertType.WARNING, "Not Supported", "Opening files is not supported on this platform.");
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Error", "Failed to download invoice.");
+            showAlert(Alert.AlertType.ERROR, "Error", "Failed to open invoice: " + e.getMessage());
         }
     }
 
