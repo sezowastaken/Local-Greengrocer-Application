@@ -10,6 +10,13 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Data Access Object for CarrierRating operations.
+ * 
+ * This class provides database operations for managing carrier ratings,
+ * including creating ratings, retrieving ratings by carrier or order,
+ * and calculating average ratings for carriers.
+ */
 public class RatingDao {
 
     public List<CarrierRating> getRatingsByCarrierId(int carrierId) {

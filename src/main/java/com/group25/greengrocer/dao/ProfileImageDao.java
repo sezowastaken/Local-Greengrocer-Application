@@ -8,7 +8,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**
- * Data Access Object for profile images
+ * Data Access Object for profile image operations.
+ * 
+ * This class provides database operations for managing user profile images,
+ * including saving, updating, retrieving, and deleting profile pictures.
+ * Images are stored as binary data in the database along with metadata.
  */
 public class ProfileImageDao {
 

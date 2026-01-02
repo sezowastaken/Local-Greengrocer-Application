@@ -9,6 +9,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Data Access Object for CustomerStats operations.
+ * 
+ * This class provides database operations for retrieving and managing
+ * customer statistics, including total orders, total spending, loyalty rates,
+ * and customer activity metrics.
+ */
 public class CustomerStatsDao {
 
     public List<CustomerStats> getAllCustomerStats() {
