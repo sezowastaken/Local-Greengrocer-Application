@@ -172,7 +172,7 @@ public class CustomerController {
     private final LoyaltyService loyaltyService = new LoyaltyService();
     private final List<CartItem> cart = new java.util.ArrayList<>();
 
-    private static class CartItem {
+    private class CartItem {
         Product product;
         double quantity;
 
@@ -181,8 +181,13 @@ public class CustomerController {
             this.quantity = quantity;
         }
 
+        double getEffectivePrice() {
+            double currentStock = localStockMap.getOrDefault(product.getId(), product.getStock());
+            return (currentStock < product.getThreshold()) ? product.getPrice() * 2 : product.getPrice();
+        }
+
         double getTotalPrice() {
-            return product.getPrice() * quantity;
+            return getEffectivePrice() * quantity;
         }
     }
 
@@ -263,7 +268,7 @@ public class CustomerController {
                         ci.product.isPiece() ? com.group25.greengrocer.model.UnitType.PCS
                                 : com.group25.greengrocer.model.UnitType.KG,
                         ci.quantity,
-                        ci.product.getPrice(),
+                        ci.getEffectivePrice(),
                         ci.getTotalPrice());
                 oi.setProductName(ci.product.getName());
                 orderItems.add(oi);
@@ -343,6 +348,11 @@ public class CustomerController {
         return card;
     }
 
+    private double getDynamicPrice(Product product) {
+        double currentStock = localStockMap.getOrDefault(product.getId(), product.getStock());
+        return (currentStock < product.getThreshold()) ? product.getPrice() * 2 : product.getPrice();
+    }
+
     private void updateProductCardUI(VBox card, Product product) {
         // Store ID for reference (optional but good practice)
         card.setUserData(product.getId());
@@ -363,11 +373,9 @@ public class CustomerController {
         Label nameLabel = new Label(product.getName());
         nameLabel.getStyleClass().add("product-name");
 
-        Label priceLabel = new Label("$" + product.getPrice() + " per " + (product.isPiece() ? "piece" : "kg"));
+        double currentPrice = getDynamicPrice(product);
+        Label priceLabel = new Label("$" + currentPrice + " per " + (product.isPiece() ? "piece" : "kg"));
         priceLabel.getStyleClass().add("product-price");
-
-        Label stockLabel = new Label("Stock: " + product.getStock() + (product.isPiece() ? "" : " kg"));
-        stockLabel.getStyleClass().add("product-stock-label");
 
         // Check if item is in cart
         CartItem cartItem = findInCart(product);
@@ -377,9 +385,9 @@ public class CustomerController {
             addToCartBtn.getStyleClass().add("button-primary");
             addToCartBtn.setMaxWidth(Double.MAX_VALUE);
             addToCartBtn.setOnAction(e -> handleAddToCart(product));
-            card.getChildren().addAll(nameLabel, priceLabel, stockLabel, addToCartBtn);
+            card.getChildren().addAll(nameLabel, priceLabel, addToCartBtn);
         } else {
-            card.getChildren().addAll(nameLabel, priceLabel, stockLabel, createQtyBox(cartItem));
+            card.getChildren().addAll(nameLabel, priceLabel, createQtyBox(cartItem));
         }
     }
 
