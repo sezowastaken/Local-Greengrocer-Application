@@ -11,18 +11,40 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 
+/**
+ * Service class for managing order operations.
+ * 
+ * This class provides high-level order management functionality, including
+ * placing orders with transaction management, stock validation, and invoice generation.
+ * 
+ * All order operations are performed within database transactions to ensure
+ * data consistency and atomicity. If any step fails, the entire transaction is rolled back.
+ */
 public class OrderService {
 
     private final OrderDao orderDao = new OrderDao();
+    
     private final OrderItemDao orderItemDao = new OrderItemDao();
+    
     private final ProductDao productDao = new ProductDao();
 
     /**
      * Places an order in a single atomic transaction.
-     * 1. Validates and deducts stock for all items.
-     * 2. Creates the Order record.
-     * 3. Creates OrderItem records.
-     * 4. Commits transaction.
+     * 
+     * This method performs the following operations within a database transaction:
+     *   Validates and deducts stock for all items in the order
+     *   Creates the Order record in the database
+     *   Creates OrderItem records for each item in the order
+     *   Generates and saves the invoice PDF
+     *   Commits the transaction
+     * 
+     * If any step fails (e.g., insufficient stock), the entire transaction is rolled back
+     * and a SQLException is thrown. The invoice generation failure does not cause a rollback,
+     * but is logged as an error.
+     * 
+     * @param order The Order object containing order metadata and customer information
+     * @param items The list of OrderItem objects representing the products in the order
+     * @throws SQLException if the transaction fails (e.g., insufficient stock, database error)
      */
     public void placeOrder(Order order, List<OrderItem> items) throws SQLException {
         Connection conn = null;

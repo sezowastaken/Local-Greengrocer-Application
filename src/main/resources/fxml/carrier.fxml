@@ -76,7 +76,13 @@
                         
                         <Label text="ACCOUNT" styleClass="carrier-menu-header"/>
                         
-                        <Button text="👤 My Profile" onAction="#handleShowProfile" styleClass="carrier-menu-btn" maxWidth="Infinity"/>
+                        <MenuButton text="👤 My Profile" styleClass="carrier-menu-btn" maxWidth="Infinity">
+                            <items>
+                                <MenuItem text="View Profile" onAction="#handleShowProfile"/>
+                            </items>
+                        </MenuButton>
+                        
+                        <Button text="📄 My License" onAction="#handleViewMyLicense" styleClass="carrier-menu-btn" maxWidth="Infinity"/>
                         
                         <Separator styleClass="carrier-menu-separator"/>
                         

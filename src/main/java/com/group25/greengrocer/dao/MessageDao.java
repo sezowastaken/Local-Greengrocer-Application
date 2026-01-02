@@ -10,6 +10,13 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Data Access Object for Message operations.
+ * 
+ * This class provides database operations for managing messages between users,
+ * including sending messages, retrieving conversations, marking messages as read,
+ * and fetching message history.
+ */
 public class MessageDao {
 
     public List<Message> getAllMessages() {
