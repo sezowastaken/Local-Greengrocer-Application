@@ -14,6 +14,7 @@
 <?import javafx.scene.text.Text?>
 
 <VBox xmlns:fx="http://javafx.com/fxml" fx:controller="com.group25.greengrocer.controller.ProfileController"
+      stylesheets="@../css/customer.css"
       spacing="0" style="-fx-background-color: #f4f6f9;" alignment="TOP_CENTER" 
       minWidth="600" minHeight="500" prefWidth="900" prefHeight="650">
 

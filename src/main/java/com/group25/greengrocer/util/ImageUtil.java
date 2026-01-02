@@ -7,16 +7,28 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 
+/**
+ * Utility class for image processing operations.
+ * Provides functionality to compress and resize image files for storage optimization.
+ * 
+ * This class is primarily used to process license images and profile pictures
+ * before storing them in the database, ensuring file sizes remain within acceptable limits.
+ */
 public class ImageUtil {
 
+    /**
+     * Maximum dimension (width or height) for images in pixels.
+     * Images larger than this will be resized proportionally.
+     */
     private static final int MAX_DIMENSION = 1024;
 
     /**
-     * Reads an image file, resizes it if needed, checks size constraints,
-     * and returns the byte array.
+     * Reads an image file, resizes it if needed to fit within MAX_DIMENSION constraints,
+     * and returns the compressed image as a byte array in JPEG format.
      * 
-     * @param file The image file to process
-     * @return byte[] of the processed image
+     * @param file The image file to process (must be a valid image file: PNG, JPG, JPEG)
+     * @return byte array of the processed and compressed image in JPEG format, 
+     *         or null if the file cannot be read or processed
      */
     public static byte[] compressAndResize(File file) {
         try {

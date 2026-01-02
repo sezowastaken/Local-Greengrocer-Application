@@ -12,6 +12,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Data Access Object for Coupon operations.
+ * 
+ * This class provides database operations for managing discount coupons,
+ * including creating, updating, deleting, validating, and applying coupons
+ * to orders. Supports both percentage and fixed amount discounts.
+ */
 public class CouponDao {
 
     public List<Coupon> getAllCoupons() {

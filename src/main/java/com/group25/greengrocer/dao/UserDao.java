@@ -11,8 +11,20 @@ import com.group25.greengrocer.model.Carrier;
 import com.group25.greengrocer.model.User;
 import com.group25.greengrocer.util.DbAdapter;
 
+/**
+ * Data Access Object for User operations.
+ * 
+ * This class provides database operations for managing users, including
+ * customers, carriers, and owners. It handles user authentication, registration,
+ * profile management, carrier license management, and user statistics.
+ */
 public class UserDao {
 
+    /**
+     * Retrieves all carriers from the database.
+     * 
+     * @return A list of User objects with carrier role, or empty list if none found
+     */
     public java.util.List<User> getCarriers() {
         java.util.List<User> carriers = new ArrayList<>();
         String query = "SELECT id, username, password_hash FROM users WHERE role = 'carrier'";
@@ -33,6 +45,11 @@ public class UserDao {
         return carriers;
     }
 
+    /**
+     * Counts the total number of customers in the database.
+     * 
+     * @return The number of users with customer role, or 0 if none found
+     */
     public int getCustomerCount() {
         String query = "SELECT COUNT(*) FROM users WHERE role = 'customer'";
         try (Connection conn = DbAdapter.getConnection();
@@ -47,6 +64,11 @@ public class UserDao {
         return 0;
     }
 
+    /**
+     * Counts the total number of owners in the database.
+     * 
+     * @return The number of users with owner role, or 0 if none found
+     */
     public int getOwnerCount() {
         String query = "SELECT COUNT(*) FROM users WHERE role = 'owner'";
         try (Connection conn = DbAdapter.getConnection();
@@ -61,6 +83,11 @@ public class UserDao {
         return 0;
     }
 
+    /**
+     * Retrieves the ID of the first owner in the database.
+     * 
+     * @return The owner's user ID, or null if no owner exists
+     */
     public Integer getPrimaryOwnerId() {
         String query = "SELECT id FROM users WHERE role = 'owner' LIMIT 1";
         try (Connection conn = DbAdapter.getConnection();
@@ -75,6 +102,12 @@ public class UserDao {
         return null;
     }
 
+    /**
+     * Adds a new carrier with approved status (without license).
+     * 
+     * @param username The carrier's username
+     * @param password The carrier's password (will be hashed)
+     */
     public void addCarrier(String username, String password) {
         String query = "INSERT INTO users (username, password_hash, role, status) VALUES (?, ?, 'carrier', 'APPROVED')";
         try (Connection conn = DbAdapter.getConnection();
@@ -87,6 +120,15 @@ public class UserDao {
         }
     }
 
+    /**
+     * Adds a new carrier with pending status and license images.
+     * 
+     * @param username The carrier's username
+     * @param password The carrier's password (will be hashed)
+     * @param licenseFront The front side of the driver's license image
+     * @param licenseBack The back side of the driver's license image
+     * @throws SQLException if a database error occurs or username already exists
+     */
     public void addCarrier(String username, String password, byte[] licenseFront, byte[] licenseBack)
             throws SQLException {
         String query = "INSERT INTO users (username, password_hash, role, license_front, license_back, status) VALUES (?, ?, 'carrier', ?, ?, 'PENDING')";
@@ -103,6 +145,11 @@ public class UserDao {
         }
     }
 
+    /**
+     * Retrieves all carriers with pending approval status.
+     * 
+     * @return A list of Carrier objects awaiting approval, or empty list if none found
+     */
     public java.util.List<Carrier> getPendingCarriers() {
         java.util.List<Carrier> carriers = new ArrayList<>();
         String query = "SELECT id, username, password_hash FROM users WHERE role = 'carrier' AND status = 'PENDING'";
@@ -123,6 +170,13 @@ public class UserDao {
         return carriers;
     }
 
+    /**
+     * Updates the approval status of a carrier.
+     * 
+     * @param userId The ID of the carrier to update
+     * @param status The new status (e.g., "APPROVED", "PENDING", "REJECTED")
+     * @return true if the update was successful, false otherwise
+     */
     public boolean updateCarrierStatus(int userId, String status) {
         String query = "UPDATE users SET status = ? WHERE id = ?";
         try (Connection conn = DbAdapter.getConnection();
@@ -136,6 +190,12 @@ public class UserDao {
         }
     }
 
+    /**
+     * Retrieves a carrier with their license images.
+     * 
+     * @param userId The ID of the carrier to retrieve
+     * @return A Carrier object with license images loaded, or null if not found
+     */
     public Carrier getCarrierWithLicenses(int userId) {
         String query = "SELECT id, username, password_hash, license_front, license_back FROM users WHERE id = ?";
         try (Connection conn = DbAdapter.getConnection();
@@ -158,6 +218,11 @@ public class UserDao {
         return null;
     }
 
+    /**
+     * Deletes a carrier from the database.
+     * 
+     * @param userId The ID of the carrier to delete
+     */
     public void deleteCarrier(int userId) {
         String query = "DELETE FROM users WHERE id = ? AND role = 'carrier'";
 
@@ -173,7 +238,11 @@ public class UserDao {
     }
 
     /**
-     * Find user by ID
+     * Finds a user by their ID and returns their profile information.
+     * 
+     * @param userId The ID of the user to find
+     * @return A UserProfile object containing user information, or null if not found
+     * @throws SQLException if a database error occurs
      */
     public UserProfile findById(long userId) throws SQLException {
         String sql = "SELECT id, username, role, full_name, phone, address_line, city FROM users WHERE id = ?";
@@ -200,7 +269,14 @@ public class UserDao {
     }
 
     /**
-     * Update user profile information
+     * Updates user profile information.
+     * 
+     * @param userId The ID of the user to update
+     * @param fullName The user's full name
+     * @param phone The user's phone number
+     * @param addressLine The user's address
+     * @param city The user's city
+     * @throws SQLException if a database error occurs
      */
     public void updateProfile(long userId,
             String fullName,

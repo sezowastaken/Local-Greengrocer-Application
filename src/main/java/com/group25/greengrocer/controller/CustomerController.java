@@ -10,6 +10,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Region;
 import javafx.scene.text.Text;
 
@@ -28,11 +29,12 @@ import com.group25.greengrocer.dao.MessageDao;
 import com.group25.greengrocer.dao.OrderDao;
 import java.io.File;
 import java.io.FileOutputStream;
-import javafx.stage.FileChooser;
 
 import javafx.collections.ObservableList;
 import com.group25.greengrocer.dao.UserDao;
 import com.group25.greengrocer.service.LoyaltyService;
+import com.group25.greengrocer.model.Coupon;
+import com.group25.greengrocer.dao.CouponDao;
 
 public class CustomerController {
 
@@ -165,6 +167,29 @@ public class CustomerController {
     @FXML
     private Label cartTotalLabel;
 
+    @FXML
+    private BorderPane paymentView;
+    @FXML
+    private VBox paymentItemsContainer;
+    @FXML
+    private TextArea paymentNoteArea;
+    @FXML
+    private Label paymentTotalLabel;
+
+    @FXML
+    private Label paymentSubtotalLabel;
+    @FXML
+    private Label paymentLoyaltyLabel;
+    @FXML
+    private Label paymentCouponLabel;
+    @FXML
+    private TextField couponCodeField;
+    @FXML
+    private Label couponMessageLabel;
+
+    private Coupon appliedCoupon = null;
+    private final CouponDao couponDao = new CouponDao();
+
     // --- Order History Views ---
 
     private final ProductDao productDao = new ProductDao();
@@ -201,31 +226,129 @@ public class CustomerController {
     }
 
     @FXML
-    private void handlePlaceOrder() {
+    private void handleProceedToPayment() {
         if (cart.isEmpty()) {
             showAlert(Alert.AlertType.ERROR, "Cart is Empty", "Please add items to your cart before checking out.");
             return;
         }
 
+        hideAllViews();
+        paymentView.setVisible(true);
+
+        // Reset Coupon
+        appliedCoupon = null;
+        couponCodeField.clear();
+        couponMessageLabel.setText("");
+
+        // Populate Payment Items List (Left Column)
+        paymentItemsContainer.getChildren().clear();
+        for (CartItem item : cart) {
+            HBox row = new HBox(10);
+            row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+            row.setStyle("-fx-padding: 5; -fx-border-color: #eee; -fx-border-width: 0 0 1 0;");
+
+            Label name = new Label(item.product.getName());
+            name.setStyle("-fx-font-weight: bold;");
+            name.setWrapText(true);
+            name.setPrefWidth(Region.USE_COMPUTED_SIZE);
+
+            // Name should grow to fill space
+            HBox.setHgrow(name, javafx.scene.layout.Priority.ALWAYS);
+
+            Label qty = new Label(String.format("x %.2f %s", item.quantity, item.product.isPiece() ? "qty" : "kg"));
+            qty.setMinWidth(80); // Ensure min width for alignment
+            qty.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+            qty.setStyle("-fx-text-fill: #666;");
+
+            Label price = new Label(String.format("$%.2f", item.getTotalPrice()));
+            price.setMinWidth(70); // Fixed width for price alignment
+            price.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+            price.setStyle("-fx-font-weight: bold; -fx-text-fill: #2e7d32;");
+
+            // Removed spacer, now Name grows. Structure: [Name (grows)] [Qty] [Price]
+            row.getChildren().addAll(name, qty, price);
+            paymentItemsContainer.getChildren().add(row);
+        }
+
+        recalculatePaymentTotal();
+    }
+
+    private void recalculatePaymentTotal() {
+        double subtotal = 0;
+        for (CartItem ci : cart)
+            subtotal += ci.getTotalPrice();
+
+        // Loyalty
+        java.math.BigDecimal individualRate = userDao.getIndividualLoyaltyRate(customerId);
+        double discountRate = (individualRate != null) ? individualRate.doubleValue()
+                : loyaltyService.getLoyaltyDiscountRate();
+        double loyaltyDiscount = subtotal * discountRate;
+
+        // Coupon
+        double couponDiscount = 0;
+        if (appliedCoupon != null) {
+            if ("PERCENTAGE".equalsIgnoreCase(appliedCoupon.getDiscountType())) {
+                couponDiscount = subtotal * (appliedCoupon.getDiscountValue() / 100.0);
+            } else {
+                couponDiscount = appliedCoupon.getDiscountValue();
+            }
+        }
+
+        double total = subtotal - loyaltyDiscount - couponDiscount;
+        if (total < 0)
+            total = 0;
+
+        // Update Labels
+        paymentSubtotalLabel.setText(String.format("$%.2f", subtotal));
+        paymentLoyaltyLabel.setText(String.format("-$%.2f", loyaltyDiscount));
+        paymentCouponLabel.setText(String.format("-$%.2f", couponDiscount));
+        paymentTotalLabel.setText(String.format("$%.2f", total));
+    }
+
+    @FXML
+    private void handleApplyCoupon() {
+        String code = couponCodeField.getText().trim();
+        if (code.isEmpty())
+            return;
+
+        try {
+            Coupon coupon = couponDao.findByCode(code);
+            if (coupon == null) {
+                couponMessageLabel.setText("Invalid coupon code.");
+                couponMessageLabel.setStyle("-fx-text-fill: red;");
+                appliedCoupon = null;
+            } else {
+                double subtotal = 0;
+                for (CartItem ci : cart)
+                    subtotal += ci.getTotalPrice();
+
+                if (subtotal < coupon.getMinOrderTotal()) {
+                    couponMessageLabel.setText("Min order total: $" + coupon.getMinOrderTotal());
+                    couponMessageLabel.setStyle("-fx-text-fill: red;");
+                    appliedCoupon = null;
+                } else {
+                    appliedCoupon = coupon;
+                    couponMessageLabel.setText("Coupon applied!");
+                    couponMessageLabel.setStyle("-fx-text-fill: green;");
+                }
+            }
+            recalculatePaymentTotal();
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            couponMessageLabel.setText("Error checking coupon.");
+        }
+    }
+
+    @FXML
+    private void handleConfirmPayment() {
         if (customerId == 0) {
-            // Ideally should not happen if login flow is correct, but safer to check
             showAlert(Alert.AlertType.ERROR, "Session Error", "Please logout and login again.");
             return;
         }
 
         try {
-            // Ask for Order Note
-            TextInputDialog noteDialog = new TextInputDialog();
-            noteDialog.setTitle("Order Note");
-            noteDialog.setHeaderText("Add a note for your order (Optional)");
-            noteDialog.setContentText("Note:");
-            styleAlert(noteDialog); // Reuse existing style method if possible, otherwise remove this line
-
-            String orderNote = "";
-            java.util.Optional<String> noteResult = noteDialog.showAndWait();
-            if (noteResult.isPresent()) {
-                orderNote = noteResult.get();
-            }
+            // Get Note from Payment Screen
+            String orderNote = paymentNoteArea.getText();
 
             // Build Order Object
             com.group25.greengrocer.model.Order order = new com.group25.greengrocer.model.Order();
@@ -242,20 +365,31 @@ public class CustomerController {
 
             // Loyalty Logic
             java.math.BigDecimal individualRate = userDao.getIndividualLoyaltyRate(customerId);
-            double discountRate = 0.0;
-            if (individualRate != null) {
-                discountRate = individualRate.doubleValue();
-            } else {
-                discountRate = loyaltyService.getLoyaltyDiscountRate();
+            double discountRate = (individualRate != null) ? individualRate.doubleValue()
+                    : loyaltyService.getLoyaltyDiscountRate();
+            double loyaltyDiscount = subtotal * discountRate;
+
+            // Coupon Logic
+            double couponDiscount = 0;
+            if (appliedCoupon != null) {
+                if ("PERCENTAGE".equalsIgnoreCase(appliedCoupon.getDiscountType())) {
+                    couponDiscount = subtotal * (appliedCoupon.getDiscountValue() / 100.0);
+                } else {
+                    couponDiscount = appliedCoupon.getDiscountValue();
+                }
+                order.setAppliedCouponId(appliedCoupon.getId());
             }
 
-            double discountAmount = subtotal * discountRate;
-            double discountedSubtotal = subtotal - discountAmount;
+            double totalDiscount = loyaltyDiscount + couponDiscount;
+            double discountedSubtotal = subtotal - totalDiscount;
+            if (discountedSubtotal < 0)
+                discountedSubtotal = 0;
 
             order.setSubtotal(subtotal);
-            order.setDiscountTotal(discountAmount);
+            order.setLoyaltyDiscountRate(discountRate); // Save rate
+            order.setDiscountTotal(totalDiscount);
 
-            order.setVatRate(18.0);
+            order.setVatRate(0.18); // Default 18%
             order.setVatTotal(discountedSubtotal * 0.18);
             order.setTotal(discountedSubtotal + order.getVatTotal());
 
@@ -722,6 +856,7 @@ public class CustomerController {
         fruitView.setVisible(false);
         fruitView.setManaged(false);
         cartView.setVisible(false);
+        paymentView.setVisible(false);
         profileView.setVisible(false);
         ordersView.setVisible(false);
         messagesView.setVisible(false);
@@ -1151,21 +1286,25 @@ public class CustomerController {
                 return;
             }
 
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.setTitle("Save Invoice");
-            fileChooser.setInitialFileName("invoice_" + order.getId() + ".pdf");
-            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF Files", "*.pdf"));
-            File file = fileChooser.showSaveDialog(ordersView.getScene().getWindow());
+            // Create a temporary file
+            File tempFile = File.createTempFile("invoice_" + order.getId() + "_", ".pdf");
+            tempFile.deleteOnExit(); // File will be deleted when the VM exits (optional, maybe user wants to keep it
+                                     // open)
 
-            if (file != null) {
-                try (FileOutputStream fos = new FileOutputStream(file)) {
-                    fos.write(pdfData);
-                    showAlert(Alert.AlertType.INFORMATION, "Success", "Invoice saved successfully.");
-                }
+            try (FileOutputStream fos = new FileOutputStream(tempFile)) {
+                fos.write(pdfData);
             }
+
+            // Open the file
+            if (java.awt.Desktop.isDesktopSupported()) {
+                java.awt.Desktop.getDesktop().open(tempFile);
+            } else {
+                showAlert(Alert.AlertType.WARNING, "Not Supported", "Opening files is not supported on this platform.");
+            }
+
         } catch (Exception e) {
             e.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Error", "Failed to download invoice.");
+            showAlert(Alert.AlertType.ERROR, "Error", "Failed to open invoice: " + e.getMessage());
         }
     }
 

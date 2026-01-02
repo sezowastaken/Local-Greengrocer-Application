@@ -7,8 +7,24 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+/**
+ * Service class for managing loyalty program discount rates.
+ * 
+ * This class provides functionality to retrieve and update the loyalty discount rate
+ * stored in the application settings. The discount rate is used to calculate
+ * discounts for loyal customers when they place orders.
+ */
 public class LoyaltyService {
 
+    /**
+     * Retrieves the current loyalty discount rate from the application settings.
+     * 
+     * The discount rate is stored in the app_settings table with the key 'LOYALTY_DISCOUNT_RATE'.
+     * If the setting is not found in the database, returns 0.0 as the default value.
+     * 
+     * @return The loyalty discount rate as a double (e.g., 0.05 for 5% discount),
+     *         or 0.0 if not found
+     */
     public double getLoyaltyDiscountRate() {
         String query = "SELECT v FROM app_settings WHERE k = 'LOYALTY_DISCOUNT_RATE'";
         try (Connection conn = DbAdapter.getConnection();
@@ -24,13 +40,18 @@ public class LoyaltyService {
         return 0.0; // Default
     }
 
+    /**
+     * Updates the loyalty discount rate in the application settings.
+     * 
+     * This method performs an upsert operation: it first attempts to update the existing
+     * setting, and if no rows are affected (setting doesn't exist), it inserts a new record.
+     * 
+     * The discount rate is stored as a string value in the app_settings table with
+     * the key 'LOYALTY_DISCOUNT_RATE'.
+     * 
+     * @param rate The new loyalty discount rate to set (e.g., 0.05 for 5% discount)
+     */
     public void setLoyaltyDiscountRate(double rate) {
-        // Upsert logic or simple update if we assume row exists.
-        // Using UPDATE safely first, then INSERT if needed, or ON DUPLICATE KEY logic
-        // if 'k' is primary.
-        // Schema says 'k' is primary key (implicitly or explicitly it was defined as
-        // unique likely, let's assume row exists or use INSERT ON DUPLICATE)
-        // Schema: `k` varchar(64) NOT NULL ...
 
         String query = "UPDATE app_settings SET v = ? WHERE k = 'LOYALTY_DISCOUNT_RATE'";
         try (Connection conn = DbAdapter.getConnection();

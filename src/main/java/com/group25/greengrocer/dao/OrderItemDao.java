@@ -8,6 +8,13 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Data Access Object for OrderItem operations.
+ * 
+ * This class provides database operations for managing order items,
+ * including creating order items within transactions and retrieving
+ * items associated with specific orders.
+ */
 public class OrderItemDao {
 
     // Transactional create method
