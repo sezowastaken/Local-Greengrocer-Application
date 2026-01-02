@@ -706,6 +706,7 @@ public class CustomerController {
         cartView.setVisible(false);
         profileView.setVisible(false);
         orderHistoryView.setVisible(false);
+        messagesView.setVisible(false);
     }
 
     @FXML
@@ -1126,14 +1127,6 @@ public class CustomerController {
     // private final com.group25.greengrocer.dao.RatingDao ratingDao = new
     // com.group25.greengrocer.dao.RatingDao();
 
-    @FXML
-    private void handleViewOrders() {
-        productTabPane.setVisible(false);
-        cartView.setVisible(false);
-        messagesView.setVisible(false);
-        ordersView.setVisible(true);
-        refreshOrders();
-    }
 
     @FXML
     private void handleRefreshOrders() {
