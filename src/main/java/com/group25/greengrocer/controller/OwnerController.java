@@ -45,6 +45,59 @@ import javafx.geometry.Pos;
 import javafx.scene.layout.ColumnConstraints;
 import javafx.scene.layout.Priority;
 
+/**
+ * Controller for the owner dashboard screen.
+ * 
+ * This is the most comprehensive controller in the application, managing all
+ * administrative functions for the greengrocer business:
+ * 
+ * Product Management:
+ * - Add, edit, and delete products
+ * - Upload and manage product images
+ * - Set prices and stock levels
+ * - Filter products by category (fruits/vegetables)
+ * - Paginated product display
+ * 
+ * Carrier Management:
+ * - View pending carrier applications
+ * - Approve or reject carrier registrations
+ * - View carrier license images
+ * - Track carrier performance and ratings
+ * 
+ * Customer Management:
+ * - View customer statistics and purchase history
+ * - Set individual customer loyalty discount rates
+ * - View customer profiles and contact information
+ * 
+ * Order Management:
+ * - View all orders across all statuses
+ * - Monitor order fulfillment and delivery
+ * - Track order history and statistics
+ * 
+ * Coupon Management:
+ * - Create and manage discount coupons
+ * - Set coupon expiration dates and discount rates
+ * - View coupon usage statistics
+ * 
+ * Messaging:
+ * - Send and receive messages from customers
+ * - View message history
+ * 
+ * Analytics:
+ * - Dashboard with sales statistics
+ * - Customer purchase trends
+ * - Product performance metrics
+ * 
+ * Settings:
+ * - Configure global loyalty discount rate
+ * - Manage application-wide settings
+ * 
+ * @see ProductDao
+ * @see UserDao
+ * @see OrderDao
+ * @see MessageDao
+ * @see CustomerStatsDao
+ */
 public class OwnerController {
 
     // DAOs
