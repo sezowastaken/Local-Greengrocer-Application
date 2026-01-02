@@ -10,6 +10,7 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Region;
 import javafx.scene.text.Text;
@@ -245,7 +246,7 @@ public class CustomerController {
         }
 
         double getTotalPrice() {
-            return product.getPrice() * quantity;
+            return product.getDynamicPrice() * quantity;
         }
     }
 
@@ -463,7 +464,7 @@ public class CustomerController {
                         ci.product.isPiece() ? com.group25.greengrocer.model.UnitType.PCS
                                 : com.group25.greengrocer.model.UnitType.KG,
                         ci.quantity,
-                        ci.product.getPrice(),
+                        ci.product.getDynamicPrice(),
                         ci.getTotalPrice());
                 oi.setProductName(ci.product.getName());
                 orderItems.add(oi);
@@ -551,19 +552,27 @@ public class CustomerController {
         // card itself)
         card.getChildren().clear();
 
+        StackPane imageContainer = new StackPane();
+        imageContainer.setPrefSize(100, 100);
+        imageContainer.setMinSize(100, 100);
+        imageContainer.setMaxSize(100, 100);
+        imageContainer.getStyleClass().add("product-image-container");
+
         if (product.getProductImage() != null) {
             ImageView imgView = new ImageView(product.getProductImage());
             imgView.setFitWidth(100);
             imgView.setFitHeight(100);
             imgView.setPreserveRatio(true);
             imgView.getStyleClass().add("product-image");
-            card.getChildren().add(imgView);
+            imageContainer.getChildren().add(imgView);
         }
+        card.getChildren().add(imageContainer);
 
         Label nameLabel = new Label(product.getName());
         nameLabel.getStyleClass().add("product-name");
 
-        Label priceLabel = new Label("$" + product.getPrice() + " per " + (product.isPiece() ? "piece" : "kg"));
+        Label priceLabel = new Label("$" + String.format("%.2f", product.getDynamicPrice()) + " per "
+                + (product.isPiece() ? "piece" : "kg"));
         priceLabel.getStyleClass().add("product-price");
 
         Label stockLabel = new Label("Stock: " + product.getStock() + (product.isPiece() ? "" : " kg"));
@@ -799,14 +808,21 @@ public class CustomerController {
             row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
             row.setPadding(new javafx.geometry.Insets(10));
 
+            StackPane cartImageContainer = new StackPane();
+            cartImageContainer.setPrefSize(50, 50);
+            cartImageContainer.setMinSize(50, 50);
+            cartImageContainer.setMaxSize(50, 50);
+            cartImageContainer.setAlignment(javafx.geometry.Pos.CENTER);
+
             if (item.product.getProductImage() != null) {
                 ImageView imgView = new ImageView(item.product.getProductImage());
                 imgView.setFitWidth(50);
                 imgView.setFitHeight(50);
                 imgView.setPreserveRatio(true);
                 imgView.getStyleClass().add("cart-image");
-                row.getChildren().add(imgView);
+                cartImageContainer.getChildren().add(imgView);
             }
+            row.getChildren().add(cartImageContainer);
 
             Label name = new Label(item.product.getName());
             name.setPrefWidth(150);
