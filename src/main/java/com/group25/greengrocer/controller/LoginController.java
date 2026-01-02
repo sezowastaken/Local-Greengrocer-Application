@@ -18,6 +18,25 @@ import javafx.scene.control.PasswordField;
 import javafx.scene.control.TextField;
 import javafx.stage.Stage;
 
+/**
+ * Controller for the login screen.
+ * 
+ * This controller handles user authentication and role-based navigation.
+ * It validates user credentials against the database, checks carrier approval status,
+ * creates user sessions, and redirects users to their appropriate dashboard screens
+ * based on their roles (customer, carrier, or owner).
+ * 
+ * Features:
+ * - Username and password validation
+ * - SHA-256 password hashing and verification
+ * - Carrier approval status checking (PENDING carriers cannot login)
+ * - Session management using the Session utility
+ * - Role-based navigation to different dashboards
+ * 
+ * @see Session
+ * @see User
+ * @see Carrier
+ */
 public class LoginController {
 
     @FXML
@@ -29,11 +48,38 @@ public class LoginController {
     @FXML
     private Label errorLabel;
 
+    /**
+     * Initializes the login form.
+     * 
+     * Currently empty as no initialization logic is required.
+     * Previously contained database migration code which was removed per user request.
+     */
     @FXML
     public void initialize() {
         // Migration removed per user request.
     }
 
+    /**
+     * Handles the login process when the user submits credentials.
+     * 
+     * Performs the following operations:
+     * Validates that username and password fields are not empty
+     * Queries the database for the user with the given username
+     * Verifies the password using SHA-256 hash comparison
+     *  Checks if carrier users have PENDING status (blocks login if pending)
+     *  Creates a User or Carrier object and stores it in the session
+     *  Loads the appropriate dashboard FXML based on user role:
+     *    - customer -> customer.fxml
+     *    - carrier -> carrier.fxml
+     *    - owner -> owner.fxml
+     * Initializes the respective controller with user session data
+     * 
+     * Error handling:
+     * - Invalid credentials: displays error message
+     * - Pending carrier: displays waiting message
+     * - Database errors: displays connection error
+     * - FXML loading errors: displays navigation error
+     */
     @FXML
     private void handleLogin() {
 
@@ -152,6 +198,15 @@ public class LoginController {
         }
     }
 
+    /**
+     * Hashes a password using SHA-256 algorithm.
+     * 
+     * Converts the password string to bytes using UTF-8 encoding, applies SHA-256
+     * hashing, and returns the result as a hexadecimal string.
+     * 
+     * @param password The plain text password to hash
+     * @return The hashed password as a hexadecimal string, or null if hashing fails
+     */
     private String hashPassword(String password) {
         try {
             java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
@@ -169,6 +224,12 @@ public class LoginController {
         }
     }
 
+    /**
+     * Navigates to the registration screen.
+     * 
+     * Loads the register.fxml file and replaces the current scene root.
+     * Called when the user clicks the "Register" link on the login screen.
+     */
     @FXML
     private void handleRegisterLink() {
         try {

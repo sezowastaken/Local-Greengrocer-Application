@@ -28,6 +28,28 @@ import javafx.scene.control.ButtonType;
 import javafx.scene.control.Dialog;
 import java.io.ByteArrayInputStream;
 
+/**
+ * Controller for the carrier dashboard screen.
+ * 
+ * This controller manages the carrier interface for order delivery management:
+ * - Viewing available orders (status: PENDING)
+ * - Accepting orders for delivery (changes status to IN_TRANSIT)
+ * - Viewing current orders being delivered
+ * - Marking orders as delivered (changes status to DELIVERED)
+ * - Viewing completed delivery history with ratings
+ * - Viewing driver's license information
+ * - Profile management
+ * 
+ * The dashboard features three main tables:
+ * Available Orders: Orders waiting to be accepted by a carrier
+ * Current Orders: Orders currently being delivered by this carrier
+ * Completed Orders: Orders successfully delivered with customer ratings
+ * 
+ * Each order can be viewed in detail showing order items, quantities, and notes.
+ * 
+ * @see OrderDao
+ * @see Order
+ */
 public class CarrierController {
 
     @FXML
@@ -134,6 +156,12 @@ public class CarrierController {
     @FXML
     private javafx.scene.control.Label completedCountLabel;
 
+    /**
+     * Sets the carrier session information.
+     * 
+     * @param id The carrier's user ID
+     * @param username The carrier's username
+     */
     public void setCarrierSession(long id, String username) {
         this.carrierId = id;
         this.carrierUsername = username;
@@ -206,6 +234,13 @@ public class CarrierController {
     }
 
     @FXML
+    /**
+     * Displays detailed information about an order in a popup.
+     * 
+     * Shows order items, quantities, prices, and any special notes from the customer.
+     * 
+     * @param orderDisplay The order to display details for
+     */
     private void handleViewDetails(OrderDisplay orderDisplay) {
         try {
             orderDetailsTitleLabel.setText("Order #" + orderDisplay.getOrderId() + " - Product List");
@@ -341,6 +376,12 @@ public class CarrierController {
     }
 
     @FXML
+    /**
+     * Refreshes all order tables.
+     * 
+     * Reloads data for available orders, current orders, and completed orders
+     * from the database to ensure the carrier sees the most up-to-date information.
+     */
     public void handleRefreshAll() {
         handleRefreshAvailable();
         handleRefreshCurrent();
@@ -460,6 +501,11 @@ public class CarrierController {
         }
     }
 
+    /**
+     * Handles accepting an order for delivery.
+     * 
+     * @param orderDisplay The order to accept
+     */
     private void handleSelectOrder(OrderDisplay orderDisplay) {
         try {
             orderDao.assignCarrier(orderDisplay.getOrderId(), carrierId);
@@ -479,6 +525,11 @@ public class CarrierController {
         }
     }
 
+    /**
+     * Handles marking an order as delivered.
+     * 
+     * @param orderDisplay The order to mark as delivered
+     */
     private void handleCompleteOrder(OrderDisplay orderDisplay) {
         // Create a dialog to enter delivery date
         javafx.scene.control.Dialog<java.time.LocalDateTime> dialog = new javafx.scene.control.Dialog<>();
@@ -574,6 +625,11 @@ public class CarrierController {
     }
 
     @FXML
+    /**
+     * Handles user logout.
+     * 
+     * Clears the current session and navigates back to the login screen.
+     */
     private void handleLogout() {
         try {
             javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
@@ -643,6 +699,12 @@ public class CarrierController {
     }
 
     @FXML
+    /**
+     * Displays the carrier profile in a dialog.
+     * 
+     * Loads the profile.fxml and passes the carrier ID to the ProfileController
+     * for displaying and editing profile information.
+     */
     private void handleShowProfile() {
         try {
             javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
@@ -660,6 +722,12 @@ public class CarrierController {
     }
 
     @FXML
+    /**
+     * Displays the carrier's driver's license in a dialog.
+     * 
+     * Shows both the front and back images of the driver's license that were
+     * uploaded during registration. The images are displayed side by side.
+     */
     private void handleViewMyLicense() {
         try {
             com.group25.greengrocer.dao.UserDao userDao = new com.group25.greengrocer.dao.UserDao();
