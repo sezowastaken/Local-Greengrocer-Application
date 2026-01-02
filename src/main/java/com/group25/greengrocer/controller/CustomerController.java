@@ -101,6 +101,7 @@ public class CustomerController {
 
         // Setup tables
         setupOrderTable();
+        setupOrderTable();
         setupMessageTable();
 
         // Set default selection
@@ -129,25 +130,6 @@ public class CustomerController {
         applyHoverScale(fruitsToggle, 1.05);
 
         refreshProductCards();
-
-        // Default: Shop View
-        updateNavigationState("SHOP");
-    }
-
-    private void updateNavigationState(String currentView) {
-        if (shopButton == null)
-            return;
-
-        switch (currentView) {
-            case "SHOP":
-                shopButton.setVisible(false);
-                shopButton.setManaged(false);
-                break;
-            default:
-                shopButton.setVisible(true);
-                shopButton.setManaged(true);
-                break;
-        }
     }
 
     private void applyHoverScale(javafx.scene.Node node, double scaleFactor) {
@@ -216,7 +198,7 @@ public class CustomerController {
     private final LoyaltyService loyaltyService = new LoyaltyService();
     private final List<CartItem> cart = new java.util.ArrayList<>();
 
-    private class CartItem {
+    private static class CartItem {
         Product product;
         double quantity;
 
@@ -225,13 +207,8 @@ public class CustomerController {
             this.quantity = quantity;
         }
 
-        double getEffectivePrice() {
-            double currentStock = localStockMap.getOrDefault(product.getId(), product.getStock());
-            return (currentStock < product.getThreshold()) ? product.getPrice() * 2 : product.getPrice();
-        }
-
         double getTotalPrice() {
-            return getEffectivePrice() * quantity;
+            return product.getPrice() * quantity;
         }
     }
 
@@ -421,7 +398,7 @@ public class CustomerController {
                         ci.product.isPiece() ? com.group25.greengrocer.model.UnitType.PCS
                                 : com.group25.greengrocer.model.UnitType.KG,
                         ci.quantity,
-                        ci.getEffectivePrice(),
+                        ci.product.getPrice(),
                         ci.getTotalPrice());
                 oi.setProductName(ci.product.getName());
                 orderItems.add(oi);
@@ -442,7 +419,6 @@ public class CustomerController {
 
             // Navigate back to shop or stay? Usually stay or show empty cart.
             handleBackToShop();
-            updateNavigationState("SHOP");
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -502,11 +478,6 @@ public class CustomerController {
         return card;
     }
 
-    private double getDynamicPrice(Product product) {
-        double currentStock = localStockMap.getOrDefault(product.getId(), product.getStock());
-        return (currentStock < product.getThreshold()) ? product.getPrice() * 2 : product.getPrice();
-    }
-
     private void updateProductCardUI(VBox card, Product product) {
         // Store ID for reference (optional but good practice)
         card.setUserData(product.getId());
@@ -527,9 +498,11 @@ public class CustomerController {
         Label nameLabel = new Label(product.getName());
         nameLabel.getStyleClass().add("product-name");
 
-        double currentPrice = getDynamicPrice(product);
-        Label priceLabel = new Label("$" + currentPrice + " per " + (product.isPiece() ? "piece" : "kg"));
+        Label priceLabel = new Label("$" + product.getPrice() + " per " + (product.isPiece() ? "piece" : "kg"));
         priceLabel.getStyleClass().add("product-price");
+
+        Label stockLabel = new Label("Stock: " + product.getStock() + (product.isPiece() ? "" : " kg"));
+        stockLabel.getStyleClass().add("product-stock-label");
 
         // Check if item is in cart
         CartItem cartItem = findInCart(product);
@@ -539,9 +512,9 @@ public class CustomerController {
             addToCartBtn.getStyleClass().add("button-primary");
             addToCartBtn.setMaxWidth(Double.MAX_VALUE);
             addToCartBtn.setOnAction(e -> handleAddToCart(product));
-            card.getChildren().addAll(nameLabel, priceLabel, addToCartBtn);
+            card.getChildren().addAll(nameLabel, priceLabel, stockLabel, addToCartBtn);
         } else {
-            card.getChildren().addAll(nameLabel, priceLabel, createQtyBox(cartItem));
+            card.getChildren().addAll(nameLabel, priceLabel, stockLabel, createQtyBox(cartItem));
         }
     }
 
@@ -579,7 +552,7 @@ public class CustomerController {
         // Style the dialog
         DialogPane dialogPane = dialog.getDialogPane();
         try {
-            dialogPane.getStylesheets().add(getClass().getResource("/css/customer.css").toExternalForm());
+            dialogPane.getStylesheets().add(getClass().getResource("/css/app.css").toExternalForm());
             dialogPane.getStyleClass().add("custom-alert");
         } catch (Exception e) {
             // ignore
@@ -719,7 +692,6 @@ public class CustomerController {
         hideAllViews();
         cartView.setVisible(true);
         updateCartView();
-        updateNavigationState("CART");
     }
 
     @FXML
@@ -737,7 +709,6 @@ public class CustomerController {
             fruitView.setManaged(true);
         }
         refreshProductCards();
-        updateNavigationState("SHOP");
     }
 
     private void updateCartView() {
@@ -861,7 +832,6 @@ public class CustomerController {
         hideAllViews();
         profileView.setVisible(true);
         loadProfileData();
-        updateNavigationState("PROFILE");
     }
 
     @FXML
@@ -869,7 +839,6 @@ public class CustomerController {
         hideAllViews();
         ordersView.setVisible(true);
         refreshOrders();
-        updateNavigationState("ORDERS");
     }
 
     private void hideAllViews() {
@@ -1191,7 +1160,7 @@ public class CustomerController {
     private void styleAlert(Dialog<?> alert) {
         DialogPane dialogPane = alert.getDialogPane();
         try {
-            dialogPane.getStylesheets().add(getClass().getResource("/css/customer.css").toExternalForm());
+            dialogPane.getStylesheets().add(getClass().getResource("/css/app.css").toExternalForm());
             dialogPane.getStyleClass().add("custom-alert");
         } catch (Exception e) {
             System.err.println("Could not load CSS for alert: " + e.getMessage());
@@ -1339,13 +1308,12 @@ public class CustomerController {
         hideAllViews();
         messagesView.setVisible(true);
         handleRefreshMessages();
-        updateNavigationState("MESSAGES");
     }
 
     @FXML
     private void handleRefreshMessages() {
         try {
-            List<Message> messages = messageDao.getMessagesForUser(customerId); // Assuming this gets sent & received
+            List<Message> messages = messageDao.getMessagesForUser(customerId);
             messagesTable.setItems(FXCollections.observableArrayList(messages));
         } catch (Exception e) {
             e.printStackTrace();
