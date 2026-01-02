@@ -102,7 +102,7 @@ public class CustomerController {
         // Setup tables
         setupOrderTable();
         setupOrderTable();
-        setupMessageTable();
+        setupMessageListView();
 
         // Set default selection
         vegetablesToggle.setSelected(true);
@@ -1185,15 +1185,9 @@ public class CustomerController {
     @FXML
     private VBox messagesView;
     @FXML
-    private TableView<com.group25.greengrocer.model.Message> messagesTable;
-    @FXML
-    private TableColumn<com.group25.greengrocer.model.Message, String> colMsgSender;
-    @FXML
-    private TableColumn<com.group25.greengrocer.model.Message, String> colMsgSubject;
-    @FXML
-    private TableColumn<com.group25.greengrocer.model.Message, String> colMsgContent;
-    @FXML
-    private TableColumn<com.group25.greengrocer.model.Message, String> colMsgDate;
+    private ListView<com.group25.greengrocer.model.Message> messagesListView;
+    // Removed TableColumns as we are now using ListView
+
     @FXML
     private TextField txtMsgSubject;
     @FXML
@@ -1314,19 +1308,66 @@ public class CustomerController {
     private void handleRefreshMessages() {
         try {
             List<Message> messages = messageDao.getMessagesForUser(customerId);
-            messagesTable.setItems(FXCollections.observableArrayList(messages));
+            messagesListView.setItems(FXCollections.observableArrayList(messages));
+            messagesListView.scrollTo(messages.size() - 1);
         } catch (Exception e) {
             e.printStackTrace();
             showAlert(Alert.AlertType.ERROR, "Error", "Could not load messages.");
         }
     }
 
-    private void setupMessageTable() {
-        colMsgSender.setCellValueFactory(new PropertyValueFactory<>("senderName"));
-        colMsgSubject.setCellValueFactory(new PropertyValueFactory<>("subject"));
-        colMsgContent.setCellValueFactory(new PropertyValueFactory<>("content"));
-        colMsgDate.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(
-                cellData.getValue().getSentTime() != null ? cellData.getValue().getSentTime().toString() : ""));
+    private void setupMessageListView() {
+        messagesListView.setCellFactory(param -> new ListCell<>() {
+            @Override
+            protected void updateItem(Message message, boolean empty) {
+                super.updateItem(message, empty);
+                if (empty || message == null) {
+                    setGraphic(null);
+                    setText(null);
+                    setStyle("-fx-background-color: transparent;");
+                } else {
+                    // Create Bubble
+                    VBox bubble = new VBox(5);
+                    bubble.getStyleClass().add("chat-bubble");
+
+                    Text content = new Text(message.getContent());
+                    content.getStyleClass().add("text");
+                    content.wrappingWidthProperty().bind(messagesListView.widthProperty().multiply(0.6)); // Max width
+                                                                                                          // 60%
+
+                    Label date = new Label(message.getSentTime().toString());
+                    date.getStyleClass().add("date-label");
+
+                    bubble.getChildren().addAll(content, date);
+
+                    // Container for alignment
+                    HBox container = new HBox();
+                    container.setFillHeight(false); // Do not stretch bubble vertically
+
+                    // Determine sender (Me vs Them)
+                    if (message.getSenderId() == customerId) {
+                        // Me (Right)
+                        bubble.getStyleClass().add("chat-bubble-me");
+                        container.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+                        container.getChildren().add(bubble);
+                    } else {
+                        // Them (Left)
+                        bubble.getStyleClass().add("chat-bubble-them");
+                        container.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+                        // Add sender name for them
+                        Label senderName = new Label(message.getSenderName());
+                        senderName.setStyle("-fx-font-size: 10px; -fx-text-fill: #555; -fx-padding: 0 0 2 5;");
+
+                        VBox messangeWithHeader = new VBox(2, senderName, bubble);
+                        container.getChildren().add(messangeWithHeader);
+                    }
+
+                    setGraphic(container);
+                    setText(null);
+                    setStyle("-fx-background-color: transparent;");
+                }
+            }
+        });
     }
 
     @FXML

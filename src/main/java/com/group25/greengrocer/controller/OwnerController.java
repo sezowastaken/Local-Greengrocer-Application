@@ -214,7 +214,31 @@ public class OwnerController {
     @FXML
     private TableColumn<Message, String> colMsgSubject;
     @FXML
+    private TableColumn<Message, String> colMsgDate;
+    @FXML
     private TextArea txtReply;
+
+    // --- Message Redesign Fields ---
+    @FXML
+    private VBox pnlConversationList;
+    @FXML
+    private VBox pnlChatDetail;
+    @FXML
+    private TableView<Message> conversationTable;
+    @FXML
+    private TableColumn<Message, String> colConvCustomer;
+    @FXML
+    private TableColumn<Message, String> colConvSubject;
+    @FXML
+    private TableColumn<Message, String> colConvLastMessage;
+    @FXML
+    private TableColumn<Message, String> colConvDate;
+    @FXML
+    private TableColumn<Message, Void> colConvAction;
+    @FXML
+    private Label lblChatCustomerName;
+
+    private long selectedCustomerForChat = -1;
 
     // --- Reports Tab ---
     @FXML
@@ -238,6 +262,9 @@ public class OwnerController {
     private TableColumn<com.group25.greengrocer.model.Coupon, String> colCouponValid;
     @FXML
     private TableColumn<com.group25.greengrocer.model.Coupon, Boolean> colCouponActive;
+
+    @FXML
+    private ListView<com.group25.greengrocer.model.Message> messageListView;
 
     // Session data for owner
     private long ownerId;
@@ -449,6 +476,7 @@ public class OwnerController {
         setupCarrierTable();
         setupOrderTable();
         setupMessageTable();
+        setupMessageListView();
         setupCouponTable();
         setupDatePickerValidation();
 
@@ -2223,29 +2251,140 @@ public class OwnerController {
 
     // --- Message Logic ---
     private void setupMessageTable() {
-        colMsgSender.setCellValueFactory(new PropertyValueFactory<>("senderName"));
-        colMsgContent.setCellValueFactory(new PropertyValueFactory<>("content"));
-        colMsgSubject.setCellValueFactory(new PropertyValueFactory<>("subject"));
+        // Conversation Table (Master)
+        colConvCustomer.setCellValueFactory(new PropertyValueFactory<>("senderName"));
+        colConvSubject.setCellValueFactory(new PropertyValueFactory<>("subject"));
+        colConvLastMessage.setCellValueFactory(new PropertyValueFactory<>("content"));
+        colConvDate.setCellValueFactory(cellData -> new javafx.beans.property.SimpleStringProperty(
+                cellData.getValue().getSentTime() != null ? cellData.getValue().getSentTime().toString() : ""));
+
+        colConvAction.setCellFactory(param -> new TableCell<>() {
+            private final Button btnOpen = new Button("Open Chat");
+            {
+                btnOpen.getStyleClass().add("button-primary");
+                btnOpen.setStyle("-fx-font-size: 11px; -fx-padding: 5 10;");
+                btnOpen.setOnAction(event -> openChat(getTableView().getItems().get(getIndex())));
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : btnOpen);
+            }
+        });
     }
 
     private void loadMessages() {
-        messageTable.setItems(FXCollections.observableArrayList(messageDao.getAllMessages()));
+        // Load conversations (Master List)
+        if (ownerId == 0) { // Fallback if ownerId not set yet
+            User u = com.group25.greengrocer.util.Session.getCurrentUser();
+            if (u != null)
+                ownerId = u.getId();
+        }
+        conversationTable.setItems(FXCollections.observableArrayList(messageDao.getRecentConversations(ownerId)));
+    }
+
+    private void openChat(Message conversationStats) {
+        selectedCustomerForChat = conversationStats.getSenderId(); // This is otherUserId now due to DAO hack
+        lblChatCustomerName.setText("Chat with " + conversationStats.getSenderName());
+
+        loadChatMessages(selectedCustomerForChat);
+
+        pnlConversationList.setVisible(false);
+        pnlChatDetail.setVisible(true);
+    }
+
+    private void loadChatMessages(long otherUserId) {
+        messageListView.setItems(FXCollections.observableArrayList(messageDao.getConversation(ownerId, otherUserId)));
+        messageListView.scrollTo(messageListView.getItems().size() - 1);
+    }
+
+    private void setupMessageListView() {
+        messageListView.setCellFactory(param -> new ListCell<>() {
+            @Override
+            protected void updateItem(com.group25.greengrocer.model.Message message, boolean empty) {
+                super.updateItem(message, empty);
+                if (empty || message == null) {
+                    setGraphic(null);
+                    setText(null);
+                    setStyle("-fx-background-color: transparent;");
+                } else {
+                    // Create Bubble
+                    javafx.scene.layout.VBox bubble = new javafx.scene.layout.VBox(5);
+                    bubble.getStyleClass().add("chat-bubble");
+
+                    javafx.scene.text.Text content = new javafx.scene.text.Text(message.getContent());
+                    content.getStyleClass().add("text");
+                    content.wrappingWidthProperty().bind(messageListView.widthProperty().multiply(0.6)); // Max width
+                                                                                                         // 60%
+
+                    Label date = new Label(message.getSentTime() != null ? message.getSentTime().toString() : "");
+                    date.getStyleClass().add("date-label");
+
+                    bubble.getChildren().addAll(content, date);
+
+                    // Container for alignment
+                    javafx.scene.layout.HBox container = new javafx.scene.layout.HBox();
+                    container.setFillHeight(false);
+
+                    // Determine sender (Me vs Them)
+                    // Owner ID needs to be compared properly.
+                    if (message.getSenderId() == ownerId) {
+                        // Me (Right)
+                        bubble.getStyleClass().add("chat-bubble-me");
+                        container.setAlignment(javafx.geometry.Pos.CENTER_RIGHT);
+                        container.getChildren().add(bubble);
+                    } else {
+                        // Them (Left)
+                        bubble.getStyleClass().add("chat-bubble-them");
+                        container.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
+                        // Add sender name for them
+                        Label senderName = new Label(message.getSenderName());
+                        senderName.setStyle("-fx-font-size: 10px; -fx-text-fill: #555; -fx-padding: 0 0 2 5;");
+
+                        javafx.scene.layout.VBox messangeWithHeader = new javafx.scene.layout.VBox(2, senderName,
+                                bubble);
+                        container.getChildren().add(messangeWithHeader);
+                    }
+
+                    setGraphic(container);
+                    setText(null);
+                    setStyle("-fx-background-color: transparent;");
+                }
+            }
+        });
+    }
+
+    @FXML
+    private void handleCloseChat() {
+        pnlChatDetail.setVisible(false);
+        pnlConversationList.setVisible(true);
+        selectedCustomerForChat = -1;
+        loadMessages(); // Refresh list to show new last messages if any
+    }
+
+    @FXML
+    private void handleRefreshMessages() {
+        loadMessages();
+        if (selectedCustomerForChat != -1 && pnlChatDetail.isVisible()) {
+            loadChatMessages(selectedCustomerForChat);
+        }
+        NotificationUtil.showSuccess("Refreshed", "Messages updated.");
     }
 
     @FXML
     private void handleReplyMessage() {
-        Message selected = messageTable.getSelectionModel().getSelectedItem();
+        if (selectedCustomerForChat == -1)
+            return;
+
         String reply = txtReply.getText();
-        if (selected != null && !reply.isEmpty()) {
-            long ownerId = com.group25.greengrocer.util.Session.getCurrentUser().getId();
-            messageDao.sendMessage(ownerId, selected.getSenderId(),
-                    "Re: " + (selected.getSubject() != null ? selected.getSubject() : "Message"), reply);
-            loadMessages();
-            txtReply.clear();
-            NotificationUtil.showSuccess("Success", "Reply sent successfully.");
-        } else {
-            NotificationUtil.showError("Error", "Select a message and enter reply.");
-        }
+        if (reply.isEmpty())
+            return;
+
+        messageDao.sendMessage(ownerId, selectedCustomerForChat, "Reply", reply);
+        txtReply.clear();
+        loadChatMessages(selectedCustomerForChat); // Refresh chat to see new message
+        NotificationUtil.showSuccess("Sent", "Message sent.");
     }
 
     // --- Reports Logic ---

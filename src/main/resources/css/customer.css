@@ -51,6 +51,19 @@
     /* Primary */
 }
 
+/* Green Input Field (New Theme) */
+.green-input-field {
+    -fx-background-color: #f1f8e9;
+    -fx-border-color: #81c784;
+    -fx-text-fill: #2e7d32;
+}
+
+.green-input-field:focused {
+    -fx-background-color: #e8f5e9;
+    -fx-border-color: #4CAF50;
+    -fx-effect: dropshadow(three-pass-box, rgba(76, 175, 80, 0.4), 5, 0, 0, 0);
+}
+
 .combo-box {
     -fx-background-color: #FFFFFF;
     /* Surface */
@@ -798,91 +811,70 @@
     /* Light Accent */
 }
 
-.status-cancelled {
-    -fx-text-fill: #d32f2f;
-    -fx-background-color: #ffebee;
-}
-
-/* Separator */
-.modern-separator-line {
-    -fx-background-color: #4CAF50;
-    /* Primary */
-    -fx-opacity: 0.2;
-    -fx-max-height: 1px;
-    -fx-min-height: 1px;
-    -fx-pref-height: 1px;
-}
-
-/* User Profile (If any) */
-.btn-profile-upload {
-    -fx-background-color: #3498db;
-    -fx-text-fill: white;
-    -fx-font-weight: bold;
-    -fx-font-size: 13px;
-    -fx-padding: 8px 16px;
-    -fx-background-radius: 20px;
-    -fx-cursor: hand;
-    -fx-effect: dropshadow(three-pass-box, rgba(52, 152, 219, 0.3), 5, 0, 0, 2);
+/* --- Chat Bubbles (New) --- */
+.chat-list-view {
+    -fx-background-color: transparent;
     -fx-border-width: 0;
+    -fx-padding: 10px;
 }
 
-.btn-profile-upload:hover {
-    -fx-background-color: #2980b9;
-    -fx-effect: dropshadow(three-pass-box, rgba(52, 152, 219, 0.5), 8, 0, 0, 3);
+.chat-list-view .list-cell {
+    -fx-background-color: transparent;
+    -fx-padding: 5px 0;
+    -fx-alignment: center-left;
+    /* Default alignment */
 }
 
-.btn-profile-save {
+.chat-list-view .list-cell:empty {
+    -fx-background-color: transparent;
+}
+
+.chat-list-view .list-cell:selected {
+    -fx-background-color: transparent;
+}
+
+.chat-bubble {
+    -fx-background-radius: 15px;
+    -fx-padding: 10px 15px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.1), 3, 0, 0, 1);
+    -fx-max-width: 400px;
+}
+
+/* Me (Right - Green) */
+.chat-bubble-me {
     -fx-background-color: #4CAF50;
     /* Primary */
-    -fx-text-fill: white;
-    -fx-font-weight: bold;
+    -fx-background-radius: 15px 15px 0 15px;
+}
+
+.chat-bubble-me .text {
+    -fx-fill: white;
     -fx-font-size: 14px;
-    -fx-padding: 10px 24px;
-    -fx-background-radius: 25px;
-    -fx-cursor: hand;
-    -fx-effect: dropshadow(three-pass-box, rgba(76, 175, 80, 0.3), 5, 0, 0, 2);
-    -fx-border-width: 0;
 }
 
-.btn-profile-save:hover {
-    -fx-background-color: #388E3C;
-    /* Dark Hover */
-    -fx-effect: dropshadow(three-pass-box, rgba(56, 142, 60, 0.5), 8, 0, 0, 3);
+.chat-bubble-me .date-label {
+    -fx-text-fill: rgba(255, 255, 255, 0.8);
+    -fx-font-size: 10px;
 }
 
-.btn-profile-reset {
-    -fx-background-color: #E2E8F0;
-    /* Border */
+/* Them (Left - White) */
+.chat-bubble-them {
+    -fx-background-color: #FFFFFF;
+    /* Surface */
+    -fx-background-radius: 15px 15px 15px 0;
+    -fx-border-color: #E2E8F0;
+    -fx-border-radius: 15px 15px 15px 0;
+    -fx-border-width: 1px;
+}
+
+.chat-bubble-them .text {
+    -fx-fill: #2D3748;
+    /* Main Text */
+    -fx-font-size: 14px;
+}
+
+.chat-bubble-them .date-label {
     -fx-text-fill: #718096;
     /* Secondary Text */
-    -fx-font-weight: bold;
-    -fx-font-size: 13px;
-    -fx-padding: 8px 16px;
-    -fx-background-radius: 20px;
-    -fx-cursor: hand;
-    -fx-border-color: #CBD5E0;
-    -fx-border-width: 1px;
-    -fx-border-radius: 20px;
-}
-
-.btn-profile-reset:hover {
-    -fx-background-color: #CBD5E0;
-    -fx-text-fill: #2D3748;
-    /* Main Text */
-    -fx-border-color: #A0AEC0;
-}
-
-.btn-profile-remove {
-    -fx-background-color: transparent;
-    -fx-text-fill: #e74c3c;
-    -fx-font-weight: bold;
-    -fx-font-size: 12px;
-    -fx-padding: 5px 10px;
-    -fx-cursor: hand;
-    -fx-underline: true;
-}
-
-.btn-profile-remove:hover {
-    -fx-text-fill: #c0392b;
-    -fx-effect: dropshadow(three-pass-box, rgba(231, 76, 60, 0.1), 5, 0, 0, 0);
+    -fx-font-size: 10px;
 }
