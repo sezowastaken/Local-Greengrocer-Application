@@ -20,6 +20,13 @@ import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
+import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
+import javafx.geometry.Pos;
+import javafx.scene.control.Separator;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.Dialog;
+import java.io.ByteArrayInputStream;
 
 public class CarrierController {
 
@@ -649,6 +656,69 @@ public class CarrierController {
         } catch (java.io.IOException e) {
             e.printStackTrace();
             showError("Failed to load profile page: " + e.getMessage());
+        }
+    }
+
+    @FXML
+    private void handleViewMyLicense() {
+        try {
+            com.group25.greengrocer.dao.UserDao userDao = new com.group25.greengrocer.dao.UserDao();
+            com.group25.greengrocer.model.Carrier full = userDao.getCarrierWithLicenses((int) carrierId);
+            
+            if (full == null) {
+                showError("Failed to load license information.");
+                return;
+            }
+
+            Dialog<ButtonType> dialog = new Dialog<>();
+            dialog.setTitle("My Driver's License");
+            dialog.setHeaderText("View Your License");
+
+            DialogPane dialogPane = dialog.getDialogPane();
+            dialogPane.getButtonTypes().addAll(ButtonType.OK);
+
+            VBox content = new VBox(20);
+            content.setAlignment(Pos.CENTER);
+            content.setPadding(new javafx.geometry.Insets(20));
+
+            HBox images = new HBox(20);
+            images.setAlignment(Pos.CENTER);
+
+            VBox frontBox = new VBox(10, new Label("Front Side"), createLicenseImageView(full.getLicenseFront()));
+            frontBox.setAlignment(Pos.CENTER);
+            VBox backBox = new VBox(10, new Label("Back Side"), createLicenseImageView(full.getLicenseBack()));
+            backBox.setAlignment(Pos.CENTER);
+
+            images.getChildren().addAll(frontBox, backBox);
+            content.getChildren().addAll(images);
+
+            dialogPane.setContent(content);
+            styleDialog(dialog);
+            dialog.showAndWait();
+        } catch (Exception e) {
+            e.printStackTrace();
+            showError("Failed to load license: " + e.getMessage());
+        }
+    }
+
+    private ImageView createLicenseImageView(byte[] data) {
+        ImageView iv = new ImageView();
+        iv.setFitWidth(300);
+        iv.setFitHeight(200);
+        iv.setPreserveRatio(true);
+        if (data != null && data.length > 0) {
+            iv.setImage(new Image(new ByteArrayInputStream(data)));
+        }
+        return iv;
+    }
+
+    private void styleDialog(Dialog<ButtonType> dialog) {
+        DialogPane dialogPane = dialog.getDialogPane();
+        try {
+            dialogPane.getStylesheets().add(getClass().getResource("/css/app.css").toExternalForm());
+            dialogPane.getStyleClass().add("custom-alert");
+        } catch (Exception e) {
+            System.err.println("Could not load CSS for dialog: " + e.getMessage());
         }
     }
     /*
