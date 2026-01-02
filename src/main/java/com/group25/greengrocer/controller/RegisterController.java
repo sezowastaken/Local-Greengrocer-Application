@@ -18,6 +18,22 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import com.group25.greengrocer.dao.UserDao;
 
+/**
+ * Controller for the user registration screen.
+ * 
+ * This controller manages the registration process for different user roles:
+ * customers, carriers, and owners. It handles form validation, password hashing,
+ * license image uploads for carriers, and database insertion.
+ * 
+ * Features:
+ * - Role-based registration (customer, carrier, owner)
+ * - Password confirmation validation
+ * - SHA-256 password hashing
+ * - Driver's license image upload for carriers (with PENDING status)
+ * - Automatic redirect to login screen after successful registration
+ * 
+ * @see UserDao
+ */
 public class RegisterController {
 
     @FXML
@@ -45,6 +61,13 @@ public class RegisterController {
     private byte[] licenseFrontBytes;
     private byte[] licenseBackBytes;
 
+    /**
+     * Initializes the registration form.
+     * 
+     * Sets up the role combo box with available roles (customer, carrier, owner)
+     * and configures a listener to show/hide the license upload section based on
+     * the selected role. Carriers must upload license images, while other roles do not.
+     */
     @FXML
     public void initialize() {
         roleComboBox.getItems().addAll("customer", "carrier", "owner");
@@ -66,6 +89,17 @@ public class RegisterController {
         }
     }
 
+    /**
+     * Handles the registration process when the user submits the form.
+     * 
+     * Performs the following validations and operations:
+     * 1. Validates that username and password fields are not empty
+     * 2. Validates that password and confirm password match
+     * 3. For carriers: validates that both license images are uploaded
+     * 4. Hashes the password using SHA-256
+     * 5. Inserts the new user into the database with appropriate role
+     * 6. Starts a countdown timer and redirects to login screen on success
+     */
     @FXML
     private void handleRegister() {
         String username = usernameField.getText();
@@ -136,6 +170,13 @@ public class RegisterController {
         }
     }
 
+    /**
+     * Handles the upload of the front side of the driver's license.
+     * 
+     * Opens a file chooser dialog for the user to select an image file,
+     * reads the file into a byte array, updates the status label with the filename,
+     * and displays a preview of the selected image.
+     */
     @FXML
     private void handleUploadFront() {
         File file = chooseImageFile();
@@ -146,6 +187,13 @@ public class RegisterController {
         }
     }
 
+    /**
+     * Handles the upload of the back side of the driver's license.
+     * 
+     * Opens a file chooser dialog for the user to select an image file,
+     * reads the file into a byte array, updates the status label with the filename,
+     * and displays a preview of the selected image.
+     */
     @FXML
     private void handleUploadBack() {
         File file = chooseImageFile();
@@ -156,6 +204,11 @@ public class RegisterController {
         }
     }
 
+    /**
+     * Opens a file chooser dialog for selecting an image file.
+     * 
+     * @return The selected File, or null if the user cancels the dialog
+     */
     private File chooseImageFile() {
         FileChooser fileChooser = new FileChooser();
         fileChooser.setTitle("Select License Image");
@@ -164,6 +217,12 @@ public class RegisterController {
         return fileChooser.showOpenDialog(usernameField.getScene().getWindow());
     }
 
+    /**
+     * Reads a file and converts its contents to a byte array.
+     * 
+     * @param file The file to read
+     * @return A byte array containing the file contents, or null if an error occurs
+     */
     private byte[] readFileToBytes(File file) {
         try (FileInputStream fis = new FileInputStream(file)) {
             byte[] data = new byte[(int) file.length()];
@@ -175,6 +234,12 @@ public class RegisterController {
         }
     }
 
+    /**
+     * Hashes a password using SHA-256 algorithm.
+     * 
+     * @param password The plain text password to hash
+     * @return The hashed password as a hexadecimal string, or null if hashing fails
+     */
     private String hashPassword(String password) {
         try {
             java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
@@ -194,6 +259,13 @@ public class RegisterController {
         }
     }
 
+    /**
+     * Starts a countdown timer for automatic redirect to login screen.
+     * 
+     * Displays a success message with a countdown (5 seconds) and automatically
+     * redirects to the login screen when the countdown reaches zero.
+     * Uses JavaFX Timeline animation for the countdown effect.
+     */
     private void startRedirectCountdown() {
         javafx.animation.Timeline timeline = new javafx.animation.Timeline();
         java.util.concurrent.atomic.AtomicInteger count = new java.util.concurrent.atomic.AtomicInteger(5);
@@ -214,6 +286,12 @@ public class RegisterController {
         timeline.play();
     }
 
+    /**
+     * Navigates to the login screen.
+     * 
+     * Loads the login.fxml file and replaces the current scene root.
+     * Called either manually by the user or automatically after successful registration.
+     */
     @FXML
     private void handleGoToLogin() {
         try {
@@ -226,6 +304,12 @@ public class RegisterController {
         }
     }
 
+    /**
+     * Navigates to the carrier application screen.
+     * 
+     * Loads the carrier_application.fxml file and replaces the current scene root.
+     * This method provides an alternative path for users who want to apply as carriers.
+     */
     @FXML
     private void handleApplyAsCarrier() {
         try {
@@ -238,6 +322,12 @@ public class RegisterController {
         }
     }
 
+    /**
+     * Displays a message to the user in the message label.
+     * 
+     * @param text The message text to display
+     * @param isError True to display as an error message (red), false for success (green)
+     */
     private void setMessage(String text, boolean isError) {
         messageLabel.setText(text);
         messageLabel.getStyleClass().setAll(isError ? "error-label" : "success-label");

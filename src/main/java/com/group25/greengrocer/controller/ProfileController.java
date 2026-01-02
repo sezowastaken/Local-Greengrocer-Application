@@ -17,6 +17,22 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * Controller for the user profile dialog.
+ * 
+ * This controller manages the profile viewing and editing functionality
+ * for all user roles (customer, carrier, owner). It displays user information
+ * such as username, role, full name, phone, address, and city.
+ * 
+ * Features:
+ * - View current profile information
+ * - Edit profile fields (full name, phone, address, city)
+ * - Save changes to the database
+ * - Input validation for required fields
+ * - City selection from predefined list
+ * 
+ * @see UserDao
+ */
 public class ProfileController {
 
     @FXML
@@ -67,6 +83,11 @@ public class ProfileController {
      * Initialize the controller
      */
     @FXML
+    /**
+     * Initializes the profile dialog.
+     * 
+     * Populates the city combo box with a predefined list of Turkish cities.
+     */
     public void initialize() {
         // Populate city dropdown with Turkish cities
         cityComboBox.setItems(FXCollections.observableArrayList(TURKISH_CITIES));
@@ -84,6 +105,16 @@ public class ProfileController {
 
     /**
      * Set the user session and load profile data
+     */
+    /**
+     * Sets the user session information and loads profile data.
+     * 
+     * Called by the parent controller to initialize the profile dialog with
+     * the current user's data. Loads and displays user information from the database.
+     * 
+     * @param userId The user's ID
+     * @param username The user's username
+     * @param role The user's role (customer, carrier, or owner)
      */
     public void setUserSession(long userId, String username, String role) {
         this.userId = userId;
