@@ -572,7 +572,7 @@ public class CustomerController {
     }
 
     @FXML
-    private VBox profileView;
+    private ScrollPane profileView;
     @FXML
     private TextField profileNameField;
     @FXML
@@ -580,7 +580,47 @@ public class CustomerController {
     @FXML
     private TextField profilePhoneField;
     @FXML
-    private TextField profileCityField;
+    private ComboBox<String> profileCityCombo;
+
+    // Error Labels
+    @FXML
+    private Label usernameErrorLabel;
+    @FXML
+    private Label addressErrorLabel;
+    @FXML
+    private Label cityErrorLabel;
+    @FXML
+    private Label phoneErrorLabel;
+    @FXML
+    private Label passwordErrorLabel;
+
+    // Password Change Fields
+    @FXML
+    private PasswordField currentPasswordField;
+    @FXML
+    private PasswordField newPasswordField;
+    @FXML
+    private PasswordField confirmPasswordField;
+
+    // Snapshot for change detection
+    private String originalUsername;
+    private String originalAddress;
+    private String originalCity;
+    private String originalPhone;
+
+    private static final String[] CITIES_OF_TURKEY = {
+            "Adana", "Adıyaman", "Afyonkarahisar", "Ağrı", "Amasya", "Ankara", "Antalya", "Artvin", "Aydın",
+            "Balıkesir",
+            "Bilecik", "Bingöl", "Bitlis", "Bolu", "Burdur", "Bursa", "Çanakkale", "Çankırı", "Çorum", "Denizli",
+            "Diyarbakır", "Edirne", "Elazığ", "Erzincan", "Erzurum", "Eskişehir", "Gaziantep", "Giresun", "Gümüşhane",
+            "Hakkari",
+            "Hatay", "Isparta", "Mersin", "İstanbul", "İzmir", "Kars", "Kastamonu", "Kayseri", "Kırklareli", "Kırşehir",
+            "Kocaeli", "Konya", "Kütahya", "Malatya", "Manisa", "Kahramanmaraş", "Mardin", "Muğla", "Muş", "Nevşehir",
+            "Niğde", "Ordu", "Rize", "Sakarya", "Samsun", "Siirt", "Sinop", "Sivas", "Tekirdağ", "Tokat",
+            "Trabzon", "Tunceli", "Şanlıurfa", "Uşak", "Van", "Yozgat", "Zonguldak", "Aksaray", "Bayburt", "Karaman",
+            "Kırıkkale", "Batman", "Şırnak", "Bartın", "Ardahan", "Iğdır", "Yalova", "Karabük", "Kilis", "Osmaniye",
+            "Düzce"
+    };
 
     @FXML
     private VBox orderHistoryView;
@@ -615,80 +655,311 @@ public class CustomerController {
 
     @FXML
     private void handleSaveProfile() {
-        String address = profileAddressField.getText();
-        String city = profileCityField.getText();
-        String phone = profilePhoneField.getText();
+        // Clear previous errors
+        clearError(usernameErrorLabel);
+        clearError(addressErrorLabel);
+        clearError(cityErrorLabel);
+        clearError(phoneErrorLabel);
 
-        String sql = "UPDATE users SET address_line = ?, city = ?, phone = ? WHERE id = ?";
+        // 1. Get Values
+        String username = profileNameField.getText().trim();
+        String address = profileAddressField.getText().trim();
+        String city = profileCityCombo.getValue();
+        if (city == null)
+            city = profileCityCombo.getEditor().getText(); // Handle editable combo
+        city = city.trim();
+        String phone = profilePhoneField.getText().trim();
+
+        // 2. Validate
+        boolean isValid = true;
+
+        // Username Validation
+        if (username.isEmpty()) {
+            showError(usernameErrorLabel, "Username cannot be empty.");
+            isValid = false;
+        } else if (username.length() < 3) {
+            showError(usernameErrorLabel, "Username must be at least 3 characters.");
+            isValid = false;
+        } else if (username.contains(" ")) {
+            showError(usernameErrorLabel, "Username cannot contain spaces.");
+            isValid = false;
+        }
+
+        // Address Validation
+        if (address.isEmpty() || address.length() < 5) {
+            showError(addressErrorLabel, "Please enter a valid address (min 5 chars).");
+            isValid = false;
+        }
+
+        // City Validation
+        if (city.isEmpty()) {
+            showError(cityErrorLabel, "Please select or type a city.");
+            isValid = false;
+        }
+
+        // Phone Validation (10 digits)
+        if (!phone.matches("^\\d{10}$")) {
+            // Try to be helpful: if they added 0 or +90, strip it?
+            // Actually, requirements say: normalize if user starts with +90 or 0
+            String normalized = normalizePhone(phone);
+            if (normalized != null) {
+                phone = normalized;
+                profilePhoneField.setText(phone); // Update UI
+            } else {
+                showError(phoneErrorLabel, "Phone must be 10 digits (e.g. 5321234567).");
+                isValid = false;
+            }
+        }
+
+        if (!isValid)
+            return;
+
+        // 3. Check for Changes
+        if (username.equals(originalUsername) &&
+                address.equals(originalAddress) &&
+                city.equals(originalCity) &&
+                phone.equals(originalPhone)) {
+
+            showAlert(Alert.AlertType.INFORMATION, "No Changes", "You haven't made any changes to your profile.");
+            return;
+        }
+
+        // 4. Update DB
+        String sql = "UPDATE users SET username = ?, address_line = ?, city = ?, phone = ? WHERE id = ?";
 
         try (java.sql.Connection conn = com.group25.greengrocer.util.DbAdapter.getConnection();
                 java.sql.PreparedStatement stmt = conn.prepareStatement(sql)) {
 
-            stmt.setString(1, address);
-            stmt.setString(2, city);
-            stmt.setString(3, phone);
-            stmt.setLong(4, customerId);
+            stmt.setString(1, username);
+            stmt.setString(2, address);
+            stmt.setString(3, city);
+            stmt.setString(4, phone);
+            stmt.setLong(5, customerId);
 
             int rows = stmt.executeUpdate();
             if (rows > 0) {
+                // Update snapshot
+                originalUsername = username;
+                originalAddress = address;
+                originalCity = city;
+                originalPhone = phone;
+
+                // Update Welcome Text if username changed
+                welcomeText.setText("Welcome, " + username);
+
                 showAlert(Alert.AlertType.INFORMATION, "Success", "Profile updated successfully!");
             } else {
                 showAlert(Alert.AlertType.ERROR, "Error", "Could not update profile.");
             }
         } catch (java.sql.SQLException e) {
             e.printStackTrace();
-            showAlert(Alert.AlertType.ERROR, "Database Error", "Update failed: " + e.getMessage());
+            if (e.getMessage().contains("Duplicate")) {
+                showError(usernameErrorLabel, "Username already taken.");
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Database Error", "Update failed: " + e.getMessage());
+            }
+        }
+    }
+
+    private String normalizePhone(String input) {
+        // Strip non-digits
+        String digits = input.replaceAll("\\D", "");
+        if (digits.length() == 10)
+            return digits;
+        if (digits.length() == 11 && digits.startsWith("0"))
+            return digits.substring(1);
+        if (digits.length() == 12 && digits.startsWith("90"))
+            return digits.substring(2);
+        return null; // Invalid
+    }
+
+    @FXML
+    private void handleChangePassword() {
+        clearError(passwordErrorLabel);
+
+        String current = currentPasswordField.getText();
+        String newVal = newPasswordField.getText();
+        String confirm = confirmPasswordField.getText();
+
+        if (current.isEmpty() || newVal.isEmpty() || confirm.isEmpty()) {
+            showError(passwordErrorLabel, "All password fields are required.");
+            return;
+        }
+
+        if (!newVal.equals(confirm)) {
+            showError(passwordErrorLabel, "New passwords do not match.");
+            return;
+        }
+
+        if (newVal.length() < 4) {
+            showError(passwordErrorLabel, "New password must be at least 4 characters.");
+            return;
+        }
+
+        // 1. Verify Current Password (Plaintext check as per current system)
+        String verifySql = "SELECT id FROM users WHERE id = ? AND password_hash = ?";
+        try (java.sql.Connection conn = com.group25.greengrocer.util.DbAdapter.getConnection();
+                java.sql.PreparedStatement verifyStmt = conn.prepareStatement(verifySql)) {
+
+            verifyStmt.setLong(1, customerId);
+            verifyStmt.setString(2, current);
+
+            try (java.sql.ResultSet rs = verifyStmt.executeQuery()) {
+                if (!rs.next()) {
+                    showError(passwordErrorLabel, "Incorrect current password.");
+                    return;
+                }
+            }
+
+            // 2. Update Password
+            String updateSql = "UPDATE users SET password_hash = ? WHERE id = ?";
+            try (java.sql.PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+                updateStmt.setString(1, newVal);
+                updateStmt.setLong(2, customerId);
+
+                int rows = updateStmt.executeUpdate();
+                if (rows > 0) {
+                    currentPasswordField.clear();
+                    newPasswordField.clear();
+                    confirmPasswordField.clear();
+                    showAlert(Alert.AlertType.INFORMATION, "Success", "Password changed successfully!");
+                } else {
+                    showError(passwordErrorLabel, "Failed to update password.");
+                }
+            }
+
+        } catch (java.sql.SQLException e) {
+            e.printStackTrace();
+            showError(passwordErrorLabel, "Database error: " + e.getMessage());
         }
     }
 
     private void loadProfileData() {
+        // Initialize Combo if empty
+        if (profileCityCombo.getItems().isEmpty()) {
+            profileCityCombo.getItems().addAll(CITIES_OF_TURKEY);
+        }
+
+        // Reset errors
+        clearError(usernameErrorLabel);
+        clearError(addressErrorLabel);
+        clearError(cityErrorLabel);
+        clearError(phoneErrorLabel);
+        clearError(passwordErrorLabel);
+
+        // Populate Data
         profileNameField.setText(welcomeText.getText().replace("Welcome, ", ""));
 
-        String sql = "SELECT address_line, city, phone FROM users WHERE id = ?";
+        String sql = "SELECT username, address_line, city, phone FROM users WHERE id = ?";
         try (java.sql.Connection conn = com.group25.greengrocer.util.DbAdapter.getConnection();
                 java.sql.PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setLong(1, customerId);
             try (java.sql.ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    profileAddressField.setText(rs.getString("address_line"));
-                    profileCityField.setText(rs.getString("city"));
-                    try {
-                        profilePhoneField.setText(rs.getString("phone"));
-                    } catch (Exception e) {
+                    // Fetch and set
+                    String user = rs.getString("username");
+                    String addr = rs.getString("address_line");
+                    String city = rs.getString("city");
+                    String phone = rs.getString("phone");
+
+                    if (user == null)
+                        user = "";
+                    if (addr == null)
+                        addr = "";
+                    if (city == null)
+                        city = "";
+                    if (phone == null)
+                        phone = "";
+
+                    profileNameField.setText(user);
+                    profileAddressField.setText(addr);
+                    profileCityCombo.setValue(city);
+                    profilePhoneField.setText(phone);
+
+                    // Allow editable checks if city not in list
+                    if (!profileCityCombo.getItems().contains(city)) {
+                        profileCityCombo.getEditor().setText(city);
                     }
+
+                    // Save snapshot
+                    originalUsername = user;
+                    originalAddress = addr;
+                    originalCity = city;
+                    originalPhone = phone;
                 }
             }
         } catch (java.sql.SQLException e) {
             e.printStackTrace();
+        }
+
+        // Add listener for Phone Validation (Typing)
+        // Remove old listener if exists to avoid duplicates? Actually initialize() is
+        // better but here ensures it's attached to the field.
+        // We'll trust JavaFX to handle it or just set it once in initialize if
+        // possible.
+        // But profilePhoneField is injected.
+        // Let's protect against multi-adding by setting OnKeyTyped directly instead of
+        // addListener if possible, or just add a simple TextFormatter
+
+        profilePhoneField.setTextFormatter(new TextFormatter<>(change -> {
+            String newText = change.getControlNewText();
+            if (newText.matches("[0-9]*")) {
+                return change;
+            }
+            return null; // Reject non-digit
+        }));
+    }
+
+    private void showError(Label label, String message) {
+        if (label != null) {
+            label.setText(message);
+            label.setVisible(true);
+            label.setManaged(true);
+        }
+    }
+
+    private void clearError(Label label) {
+        if (label != null) {
+            label.setText("");
+            label.setVisible(false);
+            label.setManaged(false);
         }
     }
 
     private void loadOrderHistory() {
         ordersContainer.getChildren().clear();
         com.group25.greengrocer.dao.OrderDao orderDao = new com.group25.greengrocer.dao.OrderDao();
-
         try {
             List<com.group25.greengrocer.model.Order> orders = orderDao.findByCustomerId(customerId);
-
             if (orders.isEmpty()) {
                 ordersContainer.getChildren().add(new Label("No past orders found."));
                 return;
             }
-
             for (com.group25.greengrocer.model.Order order : orders) {
                 VBox card = new VBox(5);
                 card.getStyleClass().add("order-card");
-
                 HBox header = new HBox(10);
-                header.setAlignment(javafx.geometry.Pos.CENTER_LEFT); // Align items vertically center
-
+                header.setAlignment(javafx.geometry.Pos.CENTER_LEFT); // Align items vertically center Label dateLabel =
+                                                                      // new Label("Date: " +
+                                                                      // order.getOrderTime().toLocalDate());
+                                                                      // dateLabel.getStyleClass().add("order-date-label");
+                                                                      // Label statusLabel = new
+                                                                      // Label(order.getStatus().name());
+                                                                      // statusLabel.getStyleClass().add("status-label");
+                                                                      // switch (order.getStatus()) { case PLACED:
+                                                                      // statusLabel.getStyleClass().add("status-placed");
+                                                                      // break; case DELIVERED:
+                                                                      // statusLabel.getStyleClass().add("status-delivered");
+                                                                      // break; case CANCELLED:
+                                                                      // statusLabel.getStyleClass().add("status-cancelled");
+                                                                      // break; default: break; } Region spacer = new
+                                                                      // Region(); HBox.setHgrow(spacer,
+                header.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
                 Label dateLabel = new Label("Date: " + order.getOrderTime().toLocalDate());
                 dateLabel.getStyleClass().add("order-date-label");
-
                 Label statusLabel = new Label(order.getStatus().name());
                 statusLabel.getStyleClass().add("status-label");
-
                 switch (order.getStatus()) {
                     case PLACED:
                         statusLabel.getStyleClass().add("status-placed");
@@ -702,25 +973,19 @@ public class CustomerController {
                     default:
                         break;
                 }
-
                 Region spacer = new Region();
                 HBox.setHgrow(spacer, javafx.scene.layout.Priority.ALWAYS);
-
                 Label totalLabel = new Label("Total: $" + String.format("%.2f", order.getTotal()));
                 totalLabel.setStyle("-fx-font-weight: bold; -fx-text-fill: #333;");
-
                 header.getChildren().addAll(dateLabel, spacer, statusLabel, new Label("|"), totalLabel);
-
                 if (order.getStatus() == com.group25.greengrocer.model.OrderStatus.PLACED) {
                     Button cancelButton = new Button("Cancel");
                     cancelButton.getStyleClass().add("button-danger");
                     cancelButton.setOnAction(e -> handleCancelOrder(order.getId()));
                     header.getChildren().add(cancelButton);
                 }
-
                 Label itemsLabel = new Label("Order ID: #" + order.getId());
                 itemsLabel.getStyleClass().add("order-id-label");
-
                 card.getChildren().addAll(header, itemsLabel);
                 ordersContainer.getChildren().add(card);
             }
