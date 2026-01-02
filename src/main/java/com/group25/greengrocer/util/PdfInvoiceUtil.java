@@ -16,8 +16,34 @@ import com.itextpdf.layout.properties.UnitValue;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
+/**
+ * Utility class for generating PDF invoice documents.
+ * 
+ * This class provides functionality to create professional PDF invoices
+ * from Order and OrderItem data using the iText PDF library. The generated
+ * invoices include order details, item listings in a table format, and
+ * financial summaries (subtotal, discount, VAT, total).
+ * 
+ * The generated PDF is returned as a byte array, which can be saved to a file,
+ * sent via email, or displayed to the user.
+ */
 public class PdfInvoiceUtil {
 
+        /**
+         * Generates a PDF invoice document from an Order and its associated OrderItems.
+         * 
+         * The generated PDF includes:
+         *   Invoice title and header
+         *   Order details (ID, date, customer ID, carrier ID if assigned, notes)
+         *   Item table with columns: Item name, Quantity, Unit Price, Total
+         *   Financial summary: Subtotal, Discount, VAT, Total
+         * 
+         * The PDF is formatted with proper alignment, styling, and a clean layout.
+         * 
+         * @param order The Order object containing order metadata and financial information
+         * @param items The list of OrderItem objects representing the products in the order
+         * @return byte array containing the PDF document data, or null if generation fails. All monetary values are displayed with two decimal places.
+         */
         public static byte[] generateInvoice(Order order, List<OrderItem> items) {
                 try (ByteArrayOutputStream baos = new ByteArrayOutputStream()) {
                         PdfWriter writer = new PdfWriter(baos);
