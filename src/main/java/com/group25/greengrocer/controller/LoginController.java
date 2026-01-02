@@ -54,6 +54,22 @@ public class LoginController {
                     controller.setCustomerSession(userId, username);
 
                     usernameField.getScene().setRoot(root);
+                } else if ("carrier".equalsIgnoreCase(role)) {
+                    javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
+                            getClass().getResource("/fxml/carrier.fxml"));
+                    javafx.scene.Parent root = loader.load();
+
+                    // Pass session data
+                    CarrierController controller = loader.getController();
+                    controller.setCarrierSession(userId, username);
+                    controller.handleRefreshAll();
+
+                    usernameField.getScene().setRoot(root);
+                } else if ("owner".equalsIgnoreCase(role)) {
+                    javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
+                            getClass().getResource("/fxml/owner.fxml"));
+                    javafx.scene.Parent root = loader.load();
+                    usernameField.getScene().setRoot(root);
                 } else {
                     errorLabel.setText("Login Successful! Welcome, " + role);
                     errorLabel.getStyleClass().setAll("success-label");

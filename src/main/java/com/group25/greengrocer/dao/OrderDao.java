@@ -64,7 +64,7 @@ public class OrderDao {
     public List<Order> findAvailableOrders() throws SQLException {
         List<Order> orders = new ArrayList<>();
         // Assuming 'PLACED' is the status for orders ready to be picked by carriers
-        String sql = "SELECT * FROM orders WHERE status = 'PLACED' ORDER BY requested_delivery_time ASC";
+        String sql = "SELECT * FROM orders WHERE status IN ('PLACED', 'READY') ORDER BY requested_delivery_time ASC";
 
         try (Connection conn = DbAdapter.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql);
@@ -89,7 +89,7 @@ public class OrderDao {
 
     public void assignCarrier(long orderId, long carrierId) throws SQLException {
         // Atomic update to ensure no race condition ideally, but simple update for now
-        String sql = "UPDATE orders SET carrier_id = ?, status = 'ASSIGNED' WHERE id = ? AND carrier_id IS NULL";
+        String sql = "UPDATE orders SET carrier_id = ?, status = 'ASSIGNED' WHERE id = ? AND status IN ('PLACED', 'READY') AND carrier_id IS NULL";
         try (Connection conn = DbAdapter.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, carrierId);
@@ -111,6 +111,52 @@ public class OrderDao {
             if (rows == 0) {
                 throw new SQLException(
                         "Could not cancel order. It may be too late to cancel (already assigned/delivered).");
+            }
+        }
+    }
+
+    public List<Order> findByCarrierId(long carrierId) throws SQLException {
+        List<Order> orders = new ArrayList<>();
+        String sql = "SELECT * FROM orders WHERE carrier_id = ? AND status = 'ASSIGNED' ORDER BY requested_delivery_time ASC";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setLong(1, carrierId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    orders.add(mapRowToOrder(rs));
+                }
+            }
+        }
+        return orders;
+    }
+
+    public List<Order> findCompletedByCarrierId(long carrierId) throws SQLException {
+        List<Order> orders = new ArrayList<>();
+        String sql = "SELECT * FROM orders WHERE carrier_id = ? AND status = 'DELIVERED' ORDER BY delivered_time DESC";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setLong(1, carrierId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    orders.add(mapRowToOrder(rs));
+                }
+            }
+        }
+        return orders;
+    }
+
+    public void completeOrder(long orderId) throws SQLException {
+        String sql = "UPDATE orders SET status = 'DELIVERED', delivered_time = NOW() WHERE id = ?";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, orderId);
+            int rows = stmt.executeUpdate();
+            if (rows == 0) {
+                throw new SQLException("Order not found.");
             }
         }
     }
