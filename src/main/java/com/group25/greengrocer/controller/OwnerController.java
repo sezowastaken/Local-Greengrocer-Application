@@ -71,6 +71,7 @@ public class OwnerController {
     private Button btnFilterVeg;
 
     private String currentCategoryFilter = "ALL";
+    private String searchQuery = "";
     private java.util.List<Product> allProducts = new java.util.ArrayList<>();
     private java.util.List<Product> filteredProducts = new java.util.ArrayList<>();
     private Product selectedProduct;
@@ -91,6 +92,10 @@ public class OwnerController {
     private CheckBox chkIsPiece; // True for count, False for KG
     @FXML
     private Label lblImageStatus;
+    @FXML
+    private Button btnAddNewProduct;
+    @FXML
+    private TextField txtProductSearch;
 
     private File selectedImageFile;
 
@@ -287,26 +292,6 @@ public class OwnerController {
     @FXML
     private Button btnLoyalty;
 
-    // --- Loyalty Table ---
-    @FXML
-    private TableView<CustomerStats> loyaltyTable;
-    @FXML
-    private TableColumn<CustomerStats, Long> colLoyaltyId;
-    @FXML
-    private TableColumn<CustomerStats, String> colLoyaltyUsername;
-    @FXML
-    private TableColumn<CustomerStats, String> colLoyaltyName;
-    @FXML
-    private TableColumn<CustomerStats, String> colLoyaltyDate;
-    @FXML
-    private TableColumn<CustomerStats, Integer> colLoyaltyOrders;
-    @FXML
-    private TableColumn<CustomerStats, java.math.BigDecimal> colLoyaltySpent;
-    @FXML
-    private TableColumn<CustomerStats, java.math.BigDecimal> colLoyaltyRate;
-    @FXML
-    private TableColumn<CustomerStats, Void> colLoyaltyAction;
-
     // --- Overview Dashboard Stats Labels ---
     @FXML
     private Label lblTotalUsers;
@@ -360,6 +345,20 @@ public class OwnerController {
     private Label lblSidebarPlaceholder;
     @FXML
     private Label lblProfilePlaceholder;
+
+    // --- Loyalty Tab ---
+    @FXML
+    private TableView<com.group25.greengrocer.model.CustomerLoyalty> loyaltyTable;
+    @FXML
+    private TableColumn<com.group25.greengrocer.model.CustomerLoyalty, String> colLoyaltyCustomer;
+    @FXML
+    private TableColumn<com.group25.greengrocer.model.CustomerLoyalty, Double> colLoyaltySpent;
+    @FXML
+    private TableColumn<com.group25.greengrocer.model.CustomerLoyalty, String> colLoyaltyTier;
+    @FXML
+    private TableColumn<com.group25.greengrocer.model.CustomerLoyalty, String> colLoyaltyDiscount;
+    @FXML
+    private TextField txtLoyaltySearch;
 
     private byte[] profilePictureBytes; // Store current profile picture
     private java.util.Map<String, Integer> categoryMap; // Store category name-to-id mapping
@@ -591,7 +590,7 @@ public class OwnerController {
             pnlLoyalty.setVisible(true);
             pnlLoyalty.toFront();
             setActiveButton(btnLoyalty);
-            loadCustomerStats();
+            loadLoyaltyData();
         }
     }
 
@@ -707,6 +706,9 @@ public class OwnerController {
             userPieChart.setData(FXCollections.observableArrayList(ownerData, customerData, carrierData));
             userPieChart.setLegendVisible(true);
 
+            // Apply random colors to pie chart slices
+            applyRandomPieChartColors();
+
         } catch (Exception e) {
             lblTotalUsers.setText("N/A");
             lblTotalCarriers.setText("N/A");
@@ -714,6 +716,26 @@ public class OwnerController {
             lblDeliveredOrders.setText("N/A");
             lblRecentActivity.setText("Error loading statistics: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    private void applyRandomPieChartColors() {
+        // Wait for chart to render then apply random colors
+        userPieChart.applyCss();
+        userPieChart.layout();
+
+        java.util.Random random = new java.util.Random();
+
+        for (javafx.scene.chart.PieChart.Data data : userPieChart.getData()) {
+            // Generate random vibrant color
+            int hue = random.nextInt(360);
+            int saturation = 60 + random.nextInt(40); // 60-100% saturation
+            int brightness = 70 + random.nextInt(30); // 70-100% brightness
+
+            String color = String.format("hsb(%d, %d%%, %d%%)", hue, saturation, brightness);
+
+            // Apply color to pie slice
+            data.getNode().setStyle("-fx-pie-color: " + color + ";");
         }
     }
 
@@ -745,7 +767,7 @@ public class OwnerController {
         loadMessages();
         loadReports();
         loadMarketingData();
-        loadCustomerStats();
+        loadLoyaltyData();
     }
 
     private void loadMarketingData() {
@@ -763,7 +785,7 @@ public class OwnerController {
         colCouponMin.setCellValueFactory(new PropertyValueFactory<>("minOrderTotal"));
         colCouponValid.setCellValueFactory(new PropertyValueFactory<>("validUntil"));
 
-        // Custom Cell Factory for Active Status Badge
+        // Custom Cell Factory for Active Status - Text only with color
         colCouponActive.setCellValueFactory(new PropertyValueFactory<>("active"));
         colCouponActive.setCellFactory(
                 column -> new javafx.scene.control.TableCell<com.group25.greengrocer.model.Coupon, Boolean>() {
@@ -771,17 +793,13 @@ public class OwnerController {
                     protected void updateItem(Boolean isActive, boolean empty) {
                         super.updateItem(isActive, empty);
                         if (empty || isActive == null) {
-                            setGraphic(null);
                             setText(null);
+                            setStyle("");
                         } else {
-                            javafx.scene.control.Label lblStatus = new javafx.scene.control.Label(
-                                    isActive ? "ACTIVE" : "PASSIVE");
-                            lblStatus.getStyleClass().add("status-badge");
-                            lblStatus.getStyleClass().add(isActive ? "status-active" : "status-passive");
-                            lblStatus.setMinWidth(80);
-                            lblStatus.setAlignment(javafx.geometry.Pos.CENTER);
-                            setGraphic(lblStatus);
-                            setText(null);
+                            setText(isActive ? "ACTIVE" : "INACTIVE");
+                            // Green for active, red for inactive - no background
+                            setStyle(isActive ? "-fx-text-fill: #2e7d32; -fx-font-weight: bold;"
+                                    : "-fx-text-fill: #c62828; -fx-font-weight: bold;");
                         }
                     }
                 });
@@ -926,98 +944,132 @@ public class OwnerController {
     // --- Loyalty Management Logic ---
 
     private void setupLoyaltyTable() {
-        colLoyaltyId.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("id"));
-        colLoyaltyUsername.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("username"));
-        colLoyaltyName.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("fullName"));
+        if (loyaltyTable == null)
+            return;
 
-        colLoyaltyDate.setCellValueFactory(cellData -> {
-            if (cellData.getValue().getRegisteredDate() != null) {
-                return new javafx.beans.property.SimpleStringProperty(
-                        cellData.getValue().getRegisteredDate()
-                                .format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd")));
-            }
-            return new javafx.beans.property.SimpleStringProperty("");
-        });
+        // Customer name column
+        colLoyaltyCustomer.setCellValueFactory(
+                cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getCustomerUsername()));
 
-        colLoyaltyOrders.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("totalOrders"));
-        colLoyaltySpent.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("totalSpent"));
+        // Total spent column with currency formatting
+        colLoyaltySpent.setCellValueFactory(
+                cellData -> new javafx.beans.property.SimpleDoubleProperty(cellData.getValue().getTotalSpent())
+                        .asObject());
+        colLoyaltySpent
+                .setCellFactory(column -> new TableCell<com.group25.greengrocer.model.CustomerLoyalty, Double>() {
+                    @Override
+                    protected void updateItem(Double item, boolean empty) {
+                        super.updateItem(item, empty);
+                        if (empty || item == null) {
+                            setText(null);
+                        } else {
+                            setText(String.format("$%.2f", item));
+                        }
+                    }
+                });
 
-        colLoyaltyRate
-                .setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("individualLoyaltyRate"));
-        colLoyaltyRate.setCellFactory(column -> new TableCell<CustomerStats, java.math.BigDecimal>() {
+        // Tier column with colored badges
+        colLoyaltyTier.setCellValueFactory(
+                cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getTierDisplay()));
+        colLoyaltyTier.setCellFactory(column -> new TableCell<com.group25.greengrocer.model.CustomerLoyalty, String>() {
             @Override
-            protected void updateItem(java.math.BigDecimal item, boolean empty) {
+            protected void updateItem(String item, boolean empty) {
                 super.updateItem(item, empty);
-                if (empty) {
+                if (empty || item == null) {
                     setText(null);
-                } else if (item == null) {
-                    setText("Global");
+                    setStyle("");
                 } else {
-                    setText(String.format("%.2f%%", item.doubleValue() * 100));
+                    setText(item);
+                    if (item.contains("PLATINUM")) {
+                        setStyle("-fx-background-color: #e0f7fa; -fx-text-fill: #00838f; -fx-font-weight: bold;");
+                    } else if (item.contains("GOLD")) {
+                        setStyle("-fx-background-color: #fff9c4; -fx-text-fill: #f57f17; -fx-font-weight: bold;");
+                    } else if (item.contains("SILVER")) {
+                        setStyle("-fx-background-color: #f5f5f5; -fx-text-fill: #616161; -fx-font-weight: bold;");
+                    } else if (item.contains("BRONZE")) {
+                        setStyle("-fx-background-color: #ffe0b2; -fx-text-fill: #e65100; -fx-font-weight: bold;");
+                    } else {
+                        setStyle("");
+                    }
                 }
             }
         });
 
-        // Action column with "Edit Rate" button
-        colLoyaltyAction.setCellFactory(param -> new TableCell<CustomerStats, Void>() {
-            private final Button btn = new Button("Edit Rate");
-            {
-                btn.getStyleClass().add("button-secondary");
-                btn.setStyle("-fx-font-size: 10px; -fx-padding: 3 8;");
-                btn.setOnAction(event -> {
-                    CustomerStats stats = getTableView().getItems().get(getIndex());
-                    handleSetIndividualRate(stats);
+        // Discount column
+        colLoyaltyDiscount.setCellValueFactory(
+                cellData -> new javafx.beans.property.SimpleStringProperty(cellData.getValue().getDiscountDisplay()));
+        colLoyaltyDiscount
+                .setCellFactory(column -> new TableCell<com.group25.greengrocer.model.CustomerLoyalty, String>() {
+                    @Override
+                    protected void updateItem(String item, boolean empty) {
+                        super.updateItem(item, empty);
+                        if (empty || item == null) {
+                            setText(null);
+                            setStyle("");
+                        } else {
+                            setText(item);
+                            if (!item.equals("—")) {
+                                setStyle("-fx-text-fill: #2e7d32; -fx-font-weight: bold;");
+                            }
+                        }
+                    }
                 });
-            }
 
-            @Override
-            protected void updateItem(Void item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty)
-                    setGraphic(null);
-                else
-                    setGraphic(btn);
-            }
-        });
+        // Action column
+        // colLoyaltyAction.setCellFactory(param -> new
+        // TableCell<com.group25.greengrocer.model.CustomerLoyalty, Void>() {
+        // private final Button btn = new Button("View");
+        // {
+        // btn.getStyleClass().add("button-secondary");
+        // btn.setStyle("-fx-font-size: 10px; -fx-padding: 3 8;");
+        // btn.setOnAction(event -> {
+        // com.group25.greengrocer.model.CustomerLoyalty loyalty =
+        // getTableView().getItems().get(getIndex());
+        // NotificationUtil.showInfo("Customer Info",
+        // String.format("%s has spent $%.2f and has %s tier (%d%% discount)",
+        // loyalty.getCustomerUsername(),
+        // loyalty.getTotalSpent(),
+        // loyalty.getLoyaltyTier(),
+        // loyalty.getDiscountRate()));
+        // });
+        // }
+
+        // @Override
+        // protected void updateItem(Void item, boolean empty) {
+        // super.updateItem(item, empty);
+        // setGraphic(empty ? null : btn);
+        // }
+        // });
     }
 
     @FXML
     private void handleRefreshLoyalty() {
-        loadCustomerStats();
-        showNotification("Refreshed", "Customer stats updated.", "info");
+        loadLoyaltyData();
+        NotificationUtil.showSuccess("Refreshed", "Customer loyalty data updated.");
     }
 
-    private void loadCustomerStats() {
+    @FXML
+    private void handleLoyaltySearch() {
+        String searchQuery = txtLoyaltySearch.getText();
+        if (searchQuery == null || searchQuery.trim().isEmpty()) {
+            loadLoyaltyData();
+        } else {
+            List<com.group25.greengrocer.model.CustomerLoyalty> results = userDao.searchCustomerLoyalty(searchQuery);
+            loyaltyTable.setItems(javafx.collections.FXCollections.observableArrayList(results));
+        }
+    }
+
+    private void loadLoyaltyData() {
         if (loyaltyTable == null)
             return;
-        List<CustomerStats> stats = customerStatsDao.getAllCustomerStats();
-        loyaltyTable.setItems(javafx.collections.FXCollections.observableArrayList(stats));
-    }
+        List<com.group25.greengrocer.model.CustomerLoyalty> loyaltyList = userDao.getAllCustomerLoyalty();
 
-    private void handleSetIndividualRate(CustomerStats stats) {
-        TextInputDialog dialog = new TextInputDialog(
-                stats.getIndividualLoyaltyRate() != null ? String.valueOf(stats.getIndividualLoyaltyRate()) : "");
-        dialog.setTitle("Set Individual Loyalty Rate");
-        dialog.setHeaderText("Set rate for " + stats.getUsername());
-        dialog.setContentText("Enter rate (0.00 - 1.00), or empty for Global:");
+        // Update database with calculated discount rates
+        for (com.group25.greengrocer.model.CustomerLoyalty loyalty : loyaltyList) {
+            userDao.updateCustomerLoyaltyRate(loyalty.getCustomerId(), loyalty.getDiscountRate());
+        }
 
-        dialog.showAndWait().ifPresent(result -> {
-            try {
-                java.math.BigDecimal rate = null;
-                if (!result.trim().isEmpty()) {
-                    rate = new java.math.BigDecimal(result.trim());
-                    if (rate.compareTo(java.math.BigDecimal.ZERO) < 0 || rate.compareTo(java.math.BigDecimal.ONE) > 0) {
-                        showNotification("Invalid Rate", "Rate must be between 0.0 and 1.0", "error");
-                        return;
-                    }
-                }
-                userDao.setIndividualLoyaltyRate(stats.getId(), rate);
-                showNotification("Success", "Loyalty rate updated.", "success");
-                loadCustomerStats();
-            } catch (NumberFormatException e) {
-                showNotification("Error", "Invalid number format.", "error");
-            }
-        });
+        loyaltyTable.setItems(javafx.collections.FXCollections.observableArrayList(loyaltyList));
     }
 
     // --- Product Logic ---
@@ -1034,10 +1086,17 @@ public class OwnerController {
         applyFilter();
     }
 
+    @FXML
+    private void handleProductSearch() {
+        searchQuery = txtProductSearch.getText();
+        applyFilter();
+    }
+
     private void applyFilter() {
         if (allProducts == null)
             allProducts = new java.util.ArrayList<>();
 
+        // Apply category filter
         if ("ALL".equals(currentCategoryFilter)) {
             filteredProducts = new java.util.ArrayList<>(allProducts);
         } else {
@@ -1047,6 +1106,18 @@ public class OwnerController {
                     filteredProducts.add(p);
                 }
             }
+        }
+
+        // Apply search query filter
+        if (searchQuery != null && !searchQuery.trim().isEmpty()) {
+            java.util.List<Product> searchResults = new java.util.ArrayList<>();
+            String query = searchQuery.toLowerCase().trim();
+            for (Product p : filteredProducts) {
+                if (p.getName() != null && p.getName().toLowerCase().contains(query)) {
+                    searchResults.add(p);
+                }
+            }
+            filteredProducts = searchResults;
         }
 
         // Update Buttons Style
@@ -1194,6 +1265,9 @@ public class OwnerController {
             imgProdPreview.setImage(null);
         }
 
+        // Disable Add New Product button when a product is selected
+        btnAddNewProduct.setDisable(true);
+
         // Efficiently update styling without resetting page index
         int currentIndex = paginationProducts.getCurrentPageIndex();
         paginationProducts.setPageFactory(this::createProductPage);
@@ -1253,7 +1327,6 @@ public class OwnerController {
             }
 
             productDao.addProduct(newProd, catId, fis);
-            productDao.addProduct(newProd, catId, fis);
             // New product, go to last page or stay on current? Default to first or keep
             // context?
             // Usually new product -> reload resets. Let's keep it simple or go to page 0 to
@@ -1262,33 +1335,38 @@ public class OwnerController {
             // is fine.
             loadProducts(0);
             clearProductFields();
-            showNotification("Success", "Product added successfully.", "success");
+            NotificationUtil.showSuccess("Success", "Product added successfully.");
         } catch (NumberFormatException e) {
-            showNotification("Invalid Input", "Please check number fields.", "error");
+            NotificationUtil.showError("Invalid Input", "Please check number fields.");
         } catch (FileNotFoundException e) {
-            showNotification("File Error", "Image file not found.", "error");
+            NotificationUtil.showError("File Error", "Image file not found.");
         }
     }
 
     // ... existing handleDeleteProduct ...
     @FXML
     private void handleDeleteProduct() {
+        System.out.println("DEBUG: handleDeleteProduct called");
+        System.out.println("DEBUG: selectedProduct = " + selectedProduct);
+
         if (selectedProduct != null) {
+            System.out.println("DEBUG: Deleting product ID: " + selectedProduct.getId());
             int currentPage = paginationProducts.getCurrentPageIndex();
             productDao.deleteProduct(selectedProduct.getId());
             selectedProduct = null; // Clear selection
             clearProductFields();
             loadProducts(currentPage);
-            showNotification("Success", "Product deleted.", "success");
+            NotificationUtil.showSuccess("Success", "Product deleted successfully.");
         } else {
-            showNotification("Selection Error", "Please select a product to delete.", "error");
+            System.out.println("DEBUG: No product selected!");
+            NotificationUtil.showError("Selection Error", "Please select a product to delete.");
         }
     }
 
     @FXML
     private void handleUpdateProduct() {
         if (selectedProduct == null) {
-            showNotification("Selection Error", "Please select a product to update.", "error");
+            NotificationUtil.showError("Selection Error", "Please select a product to update.");
             return;
         }
         try {
@@ -1319,10 +1397,10 @@ public class OwnerController {
 
             // Re-select logic if we want to keep selection?
             // For now, let's clear or simple reload
-            showNotification("Success", "Product updated.", "success");
+            NotificationUtil.showSuccess("Success", "Product updated successfully.");
 
         } catch (NumberFormatException | FileNotFoundException e) {
-            showNotification("Error", "Invalid input or file.", "error");
+            NotificationUtil.showError("Error", "Invalid input or file.");
         }
     }
 
@@ -1335,6 +1413,19 @@ public class OwnerController {
         selectedImageFile = null;
         imgProdPreview.setImage(null);
         selectedProduct = null;
+
+        // Re-enable Add New Product button when form is cleared
+        btnAddNewProduct.setDisable(false);
+
+        // Refresh the product grid to remove selection highlight
+        int currentPage = paginationProducts.getCurrentPageIndex();
+        paginationProducts.setPageFactory(this::createProductPage);
+        paginationProducts.setCurrentPageIndex(currentPage);
+    }
+
+    @FXML
+    private void handleClearProductForm() {
+        clearProductFields();
     }
 
     // --- Carrier Logic ---
@@ -1571,8 +1662,28 @@ public class OwnerController {
         txtCarrUsername.setText(user.getUsername());
         txtCarrPassword.clear(); // Don't show hash
         btnHireCarrier.setText("Update Carrier");
-        // Images? If we want to show them we need to fetch them.
-        // For now, leave empty implies "no change".
+
+        // Fetch carrier with license photos from database
+        com.group25.greengrocer.model.Carrier fullCarrier = userDao.getCarrierWithLicenses(user.getId());
+        if (fullCarrier != null) {
+            // Display license front photo
+            if (fullCarrier.getLicenseFront() != null && fullCarrier.getLicenseFront().length > 0) {
+                imgLicenseFront.setImage(new Image(new java.io.ByteArrayInputStream(fullCarrier.getLicenseFront())));
+                manualLicenseFrontBytes = fullCarrier.getLicenseFront();
+            } else {
+                imgLicenseFront.setImage(null);
+                manualLicenseFrontBytes = null;
+            }
+
+            // Display license back photo
+            if (fullCarrier.getLicenseBack() != null && fullCarrier.getLicenseBack().length > 0) {
+                imgLicenseBack.setImage(new Image(new java.io.ByteArrayInputStream(fullCarrier.getLicenseBack())));
+                manualLicenseBackBytes = fullCarrier.getLicenseBack();
+            } else {
+                imgLicenseBack.setImage(null);
+                manualLicenseBackBytes = null;
+            }
+        }
     }
 
     @FXML

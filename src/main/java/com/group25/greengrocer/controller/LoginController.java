@@ -47,7 +47,7 @@ public class LoginController {
             return;
         }
 
-        String query = "SELECT id, role, password_hash FROM users WHERE username = ?";
+        String query = "SELECT id, role, password_hash, status FROM users WHERE username = ?";
 
         try (Connection conn = DbAdapter.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -65,6 +65,7 @@ public class LoginController {
                 int userId = result.getInt("id");
                 String role = result.getString("role");
                 String storedPasswordHash = result.getString("password_hash");
+                String status = result.getString("status");
                 String inputPasswordHash = hashPassword(password);
 
                 // DEBUG (keep)
@@ -78,6 +79,14 @@ public class LoginController {
 
                 if (!passwordMatches) {
                     errorLabel.setText("Invalid username or password.");
+                    errorLabel.getStyleClass().setAll("error-label");
+                    return;
+                }
+
+                // Check if carrier is pending approval
+                if ("carrier".equalsIgnoreCase(role) && "PENDING".equalsIgnoreCase(status)) {
+                    errorLabel.setText(
+                            "Your carrier application is pending approval. Please wait for the owner to review your application.");
                     errorLabel.getStyleClass().setAll("error-label");
                     return;
                 }

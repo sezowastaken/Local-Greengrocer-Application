@@ -540,6 +540,17 @@
     /* Blue accent on left */
 }
 
+.table-row-cell:selected {
+    -fx-background-color: #e3f2fd;
+    -fx-text-fill: #1565c0;
+    -fx-font-weight: bold;
+    -fx-table-cell-border-color: transparent;
+}
+
+.table-row-cell:selected .text {
+    -fx-fill: #1565c0;
+}
+
 /* Action Buttons in Cell */
 .action-btn {
     /* Select Button */
@@ -902,8 +913,6 @@ OLD CARRIER PANEL STYLES (BACKUP)
     -fx-border-width: 2px;
 }
 
--fx-background-color: #53639F;
-}
 
 .owner-panel-reports {
     -fx-background-color: #02030A;

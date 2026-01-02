@@ -31,7 +31,7 @@ public class ProductDao {
 
     public List<Product> getProductsByCategory(String category) {
         List<Product> products = new ArrayList<>();
-        String query = "SELECT p.*, c.name as category_name FROM products p JOIN categories c ON p.category_id = c.id WHERE c.name = ? ORDER BY p.name ASC";
+        String query = "SELECT p.*, c.name as category_name FROM products p JOIN categories c ON p.category_id = c.id WHERE c.name = ? AND p.is_deleted = 0 ORDER BY p.name ASC";
 
         try (Connection conn = DbAdapter.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
@@ -58,7 +58,7 @@ public class ProductDao {
 
     public List<Product> getAllProducts() {
         List<Product> products = new ArrayList<>();
-        String query = "SELECT p.*, c.name as category_name FROM products p JOIN categories c ON p.category_id = c.id ORDER BY p.name ASC";
+        String query = "SELECT p.*, c.name as category_name FROM products p JOIN categories c ON p.category_id = c.id WHERE p.is_deleted = 0 ORDER BY p.name ASC";
 
         try (Connection conn = DbAdapter.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query);
@@ -137,15 +137,17 @@ public class ProductDao {
     }
 
     public void deleteProduct(int productId) {
-        String query = "DELETE FROM products WHERE id = ?";
+        System.out.println("DEBUG: ProductDao.deleteProduct (soft delete) called with ID: " + productId);
+        String query = "UPDATE products SET is_deleted = 1 WHERE id = ?";
 
         try (Connection conn = DbAdapter.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(query)) {
 
             stmt.setInt(1, productId);
-            stmt.executeUpdate();
-            stmt.executeUpdate();
+            int rowsAffected = stmt.executeUpdate();
+            System.out.println("DEBUG: Rows marked as deleted: " + rowsAffected);
         } catch (SQLException e) {
+            System.out.println("DEBUG: SQL Exception during soft delete: " + e.getMessage());
             e.printStackTrace();
         }
     }
