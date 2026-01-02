@@ -7,9 +7,28 @@ import com.group25.greengrocer.util.DbAdapter;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class OrderDao {
+
+    public List<Order> getAllOrders() {
+        List<Order> orders = new ArrayList<>();
+        String query = "SELECT * FROM orders ORDER BY order_time DESC";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                orders.add(mapRowToOrder(rs));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return orders;
+    }
 
     // Transactional create method
     public long create(Order order, Connection conn) throws SQLException {
@@ -61,10 +80,55 @@ public class OrderDao {
         return orders;
     }
 
+    public Map<String, Integer> getTopSellingProducts() {
+        Map<String, Integer> stats = new HashMap<>();
+        String query = "SELECT p.name, SUM(oi.quantity) as total_qty " +
+                "FROM order_items oi " +
+                "JOIN products p ON oi.product_id = p.id " +
+                "JOIN orders o ON oi.order_id = o.id " +
+                "WHERE o.status = 'DELIVERED' " +
+                "GROUP BY p.name " +
+                "ORDER BY total_qty DESC LIMIT 5";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                stats.put(rs.getString("name"), rs.getInt("total_qty"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return stats;
+    }
+
+    public Map<String, Double> getRevenueByDate() {
+        Map<String, Double> stats = new HashMap<>();
+        // Grouping by DATE(order_time)
+        String query = "SELECT DATE(order_time) as date, SUM(total) as total " +
+                "FROM orders " +
+                "WHERE status = 'DELIVERED' " + // Only count delivered/completed orders for revenue
+                "GROUP BY DATE(order_time) " +
+                "ORDER BY date DESC LIMIT 7";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                stats.put(rs.getString("date"), rs.getDouble("total"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return stats;
+    }
+
     public List<Order> findAvailableOrders() throws SQLException {
         List<Order> orders = new ArrayList<>();
         // Assuming 'PLACED' is the status for orders ready to be picked by carriers
-        String sql = "SELECT * FROM orders WHERE status IN ('PLACED', 'READY') ORDER BY requested_delivery_time ASC";
+        String sql = "SELECT * FROM orders WHERE status IN ('PLACED', 'READY') AND carrier_id IS NULL ORDER BY requested_delivery_time ASC";
 
         try (Connection conn = DbAdapter.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql);
@@ -150,13 +214,13 @@ public class OrderDao {
     }
 
     public void completeOrder(long orderId) throws SQLException {
-        String sql = "UPDATE orders SET status = 'DELIVERED', delivered_time = NOW() WHERE id = ?";
+        String sql = "UPDATE orders SET status = 'DELIVERED', delivered_time = NOW() WHERE id = ? AND status = 'ASSIGNED'";
         try (Connection conn = DbAdapter.getConnection();
                 PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setLong(1, orderId);
             int rows = stmt.executeUpdate();
             if (rows == 0) {
-                throw new SQLException("Order not found.");
+                throw new SQLException("Order not found or not in ASSIGNED state.");
             }
         }
     }
@@ -200,5 +264,57 @@ public class OrderDao {
         order.setNote(rs.getString("note"));
 
         return order;
+    }
+
+    public void completeOrderWithDate(long orderId, java.time.LocalDateTime deliveredTime) throws SQLException {
+        String sql = "UPDATE orders SET status = 'DELIVERED', delivered_time = ? WHERE id = ? AND status = 'ASSIGNED'";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setObject(1, deliveredTime);
+            stmt.setLong(2, orderId);
+            int rows = stmt.executeUpdate();
+            if (rows == 0) {
+                throw new SQLException("Order not found or not in ASSIGNED state.");
+            }
+        }
+    }
+
+    public void saveInvoice(long orderId, byte[] pdfData) throws SQLException {
+        String sql = "INSERT INTO invoices (order_id, pdf_blob) VALUES (?, ?)";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, orderId);
+            stmt.setBytes(2, pdfData);
+            stmt.executeUpdate();
+            // If this method created its own connection (autocommit true usually), commit
+            // isn't explicitly needed but good practice if safe.
+            // But here we just rely on auto-commit if standalone.
+        }
+    }
+
+    // Overloaded method for transaction participation (Matches create(Order,
+    // Connection) pattern)
+    public void saveInvoice(long orderId, byte[] pdfData, Connection conn) throws SQLException {
+        String sql = "INSERT INTO invoices (order_id, pdf_blob) VALUES (?, ?)";
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, orderId);
+            stmt.setBytes(2, pdfData);
+            stmt.executeUpdate();
+            // Do NOT close connection here!
+        }
+    }
+
+    public byte[] getInvoice(long orderId) throws SQLException {
+        String sql = "SELECT pdf_blob FROM invoices WHERE order_id = ?";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, orderId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getBytes("pdf_blob");
+                }
+            }
+        }
+        return null;
     }
 }

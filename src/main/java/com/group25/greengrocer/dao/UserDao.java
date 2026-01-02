@@ -1,12 +1,162 @@
 package com.group25.greengrocer.dao;
 
-import com.group25.greengrocer.util.DbAdapter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.group25.greengrocer.model.Carrier;
+import com.group25.greengrocer.model.User;
+import com.group25.greengrocer.util.DbAdapter;
 
 public class UserDao {
+
+    public java.util.List<User> getCarriers() {
+        java.util.List<User> carriers = new ArrayList<>();
+        String query = "SELECT id, username, password_hash FROM users WHERE role = 'carrier'";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                carriers.add(new Carrier(
+                        rs.getInt("id"),
+                        rs.getString("username"),
+                        rs.getString("password_hash")));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return carriers;
+    }
+
+    public int getCustomerCount() {
+        String query = "SELECT COUNT(*) FROM users WHERE role = 'customer'";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public int getOwnerCount() {
+        String query = "SELECT COUNT(*) FROM users WHERE role = 'owner'";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return 0;
+    }
+
+    public void addCarrier(String username, String password) {
+        String query = "INSERT INTO users (username, password_hash, role, status) VALUES (?, ?, 'carrier', 'APPROVED')";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, username);
+            stmt.setString(2, hashPassword(password));
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void addCarrier(String username, String password, byte[] licenseFront, byte[] licenseBack)
+            throws SQLException {
+        String query = "INSERT INTO users (username, password_hash, role, license_front, license_back, status) VALUES (?, ?, 'carrier', ?, ?, 'PENDING')";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+
+            stmt.setString(1, username);
+            stmt.setString(2, hashPassword(password));
+            stmt.setBytes(3, licenseFront);
+            stmt.setBytes(4, licenseBack);
+            stmt.executeUpdate();
+
+        }
+    }
+
+    public java.util.List<Carrier> getPendingCarriers() {
+        java.util.List<Carrier> carriers = new ArrayList<>();
+        String query = "SELECT id, username, password_hash FROM users WHERE role = 'carrier' AND status = 'PENDING'";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query);
+                ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                carriers.add(new Carrier(
+                        rs.getInt("id"),
+                        rs.getString("username"),
+                        rs.getString("password_hash")));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return carriers;
+    }
+
+    public boolean updateCarrierStatus(int userId, String status) {
+        String query = "UPDATE users SET status = ? WHERE id = ?";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setString(1, status);
+            stmt.setInt(2, userId);
+            return stmt.executeUpdate() > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public Carrier getCarrierWithLicenses(int userId) {
+        String query = "SELECT id, username, password_hash, license_front, license_back FROM users WHERE id = ?";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+            stmt.setInt(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    Carrier carrier = new Carrier(
+                            rs.getInt("id"),
+                            rs.getString("username"),
+                            rs.getString("password_hash"));
+                    carrier.setLicenseFront(rs.getBytes("license_front"));
+                    carrier.setLicenseBack(rs.getBytes("license_back"));
+                    return carrier;
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public void deleteCarrier(int userId) {
+        String query = "DELETE FROM users WHERE id = ? AND role = 'carrier'";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+
+            stmt.setInt(1, userId);
+            stmt.executeUpdate();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 
     /**
      * Find user by ID
@@ -38,8 +188,12 @@ public class UserDao {
     /**
      * Update user profile information
      */
-    public void updateProfile(long userId, String fullName, String phone, String addressLine, String city)
-            throws SQLException {
+    public void updateProfile(long userId,
+            String fullName,
+            String phone,
+            String addressLine,
+            String city) throws SQLException {
+
         String sql = "UPDATE users SET full_name = ?, phone = ?, address_line = ?, city = ? WHERE id = ?";
 
         try (Connection conn = DbAdapter.getConnection();
@@ -59,6 +213,116 @@ public class UserDao {
     }
 
     /**
+     * Update user password
+     */
+    public boolean updatePassword(int userId, String newPasswordHash) {
+        String sql = "UPDATE users SET password_hash = ? WHERE id = ?";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setString(1, newPasswordHash);
+            stmt.setInt(2, userId);
+
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Save or update profile picture for a user
+     * 
+     * @param userId      User ID
+     * @param pictureData Image data as byte array
+     * @return true if successful, false otherwise
+     */
+    public boolean saveProfilePicture(int userId, byte[] pictureData) {
+        String sql = "UPDATE users SET profile_picture_blob = ? WHERE id = ?";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setBytes(1, pictureData);
+            stmt.setInt(2, userId);
+
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    /**
+     * Get profile picture for a user
+     * 
+     * @param userId User ID
+     * @return Profile picture as byte array, or null if not found
+     */
+    public byte[] getProfilePicture(int userId) {
+        String sql = "SELECT profile_picture_blob FROM users WHERE id = ?";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, userId);
+
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getBytes("profile_picture_blob");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    /**
+     * Delete profile picture for a user
+     * 
+     * @param userId User ID
+     * @return true if successful, false otherwise
+     */
+    public boolean deleteProfilePicture(int userId) {
+        String sql = "UPDATE users SET profile_picture_blob = NULL WHERE id = ?";
+
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            stmt.setInt(1, userId);
+            return stmt.executeUpdate() > 0;
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    private String hashPassword(String password) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] encodedhash = digest.digest(password.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder(2 * encodedhash.length);
+            for (byte b : encodedhash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1)
+                    hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (java.security.NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
      * Inner class to represent user profile data
      */
     public static class UserProfile {
@@ -70,8 +334,9 @@ public class UserDao {
         private String addressLine;
         private String city;
 
-        public UserProfile(long id, String username, String role, String fullName,
-                String phone, String addressLine, String city) {
+        public UserProfile(long id, String username, String role,
+                String fullName, String phone,
+                String addressLine, String city) {
             this.id = id;
             this.username = username;
             this.role = role;
@@ -124,5 +389,33 @@ public class UserDao {
         public void setCity(String city) {
             this.city = city;
         }
+    }
+
+    public void setIndividualLoyaltyRate(long userId, java.math.BigDecimal rate) {
+        String sql = "UPDATE users SET individual_loyalty_rate = ? WHERE id = ?";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setBigDecimal(1, rate);
+            stmt.setLong(2, userId);
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public java.math.BigDecimal getIndividualLoyaltyRate(long userId) {
+        String sql = "SELECT individual_loyalty_rate FROM users WHERE id = ?";
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, userId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getBigDecimal("individual_loyalty_rate");
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 }

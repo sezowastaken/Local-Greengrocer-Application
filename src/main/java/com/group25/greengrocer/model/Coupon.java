@@ -24,7 +24,6 @@ public class Coupon {
         this.isActive = isActive;
     }
 
-    // Getters and Setters
     public long getId() {
         return id;
     }

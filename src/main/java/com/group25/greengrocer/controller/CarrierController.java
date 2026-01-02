@@ -1,19 +1,25 @@
 package com.group25.greengrocer.controller;
 
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+
 import com.group25.greengrocer.dao.OrderDao;
 import com.group25.greengrocer.model.Order;
 
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
-import javafx.scene.control.*;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.DialogPane;
+import javafx.scene.control.Label;
+import javafx.scene.control.TableCell;
+import javafx.scene.control.TableColumn;
+import javafx.scene.control.TableView;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
-
-import java.time.format.DateTimeFormatter;
-import java.util.List;
 
 public class CarrierController {
 
@@ -66,6 +72,8 @@ public class CarrierController {
     @FXML
     private TableColumn<OrderDisplay, String> compTotalCol;
     @FXML
+    private TableColumn<OrderDisplay, String> compRatingCol;
+    @FXML
     private TableColumn<OrderDisplay, Void> compActionsCol;
 
     // Order Details Popup elements
@@ -73,6 +81,8 @@ public class CarrierController {
     private VBox orderDetailsPopup;
     @FXML
     private Label orderDetailsTitleLabel;
+    @FXML
+    private Label orderDetailsNoteLabel;
     @FXML
     private TableView<com.group25.greengrocer.model.OrderItem> orderDetailsTable;
     @FXML
@@ -98,10 +108,74 @@ public class CarrierController {
     private long carrierId;
     private String carrierUsername;
 
+    @FXML
+    private Label ratingLabel;
+
+    // ...
+    private com.group25.greengrocer.dao.RatingDao ratingDao = new com.group25.greengrocer.dao.RatingDao();
+
+    // Sidebar toggle
+    @FXML
+    private javafx.scene.layout.VBox sidebarContainer;
+    @FXML
+    private javafx.scene.control.Button sidebarToggleBtn;
+    private boolean sidebarVisible = true;
+
+    // Stats labels
+    @FXML
+    private javafx.scene.control.Label activeCountLabel;
+    @FXML
+    private javafx.scene.control.Label completedCountLabel;
+
     public void setCarrierSession(long id, String username) {
         this.carrierId = id;
         this.carrierUsername = username;
-        welcomeText.setText("Welcome, " + username);
+        welcomeText.setText(username);
+        updateRatingDisplay();
+        updateStats();
+    }
+
+    private void updateStats() {
+        if (activeCountLabel != null && completedCountLabel != null) {
+            int activeCount = currentOrdersTable.getItems().size();
+            int completedCount = completedOrdersTable.getItems().size();
+            activeCountLabel.setText(String.valueOf(activeCount));
+            completedCountLabel.setText(String.valueOf(completedCount));
+        }
+    }
+
+    @FXML
+    private void handleToggleSidebar() {
+        if (sidebarVisible) {
+            // Hide sidebar with animation
+            javafx.animation.TranslateTransition transition = new javafx.animation.TranslateTransition(
+                    javafx.util.Duration.millis(300), sidebarContainer);
+            transition.setToX(-250);
+            transition.setOnFinished(e -> {
+                sidebarContainer.setVisible(false);
+                sidebarContainer.setManaged(false);
+            });
+            transition.play();
+            sidebarToggleBtn.setText("☰");
+        } else {
+            // Show sidebar with animation
+            sidebarContainer.setVisible(true);
+            sidebarContainer.setManaged(true);
+            sidebarContainer.setTranslateX(-250);
+            javafx.animation.TranslateTransition transition = new javafx.animation.TranslateTransition(
+                    javafx.util.Duration.millis(300), sidebarContainer);
+            transition.setToX(0);
+            transition.play();
+            sidebarToggleBtn.setText("✕");
+        }
+        sidebarVisible = !sidebarVisible;
+    }
+
+    private void updateRatingDisplay() {
+        if (ratingLabel != null) {
+            double avg = ratingDao.getAverageRating((int) carrierId);
+            ratingLabel.setText(String.format("Rating: %.1f/5", avg));
+        }
     }
 
     @FXML
@@ -128,6 +202,10 @@ public class CarrierController {
     private void handleViewDetails(OrderDisplay orderDisplay) {
         try {
             orderDetailsTitleLabel.setText("Order #" + orderDisplay.getOrderId() + " - Product List");
+            if (orderDetailsNoteLabel != null) {
+                String note = orderDisplay.getNote();
+                orderDetailsNoteLabel.setText((note != null && !note.isEmpty()) ? "Note: " + note : "No Data");
+            }
 
             java.util.List<com.group25.greengrocer.model.OrderItem> items = orderItemDao
                     .findByOrderId(orderDisplay.getOrderId());
@@ -233,7 +311,26 @@ public class CarrierController {
         compCustomerNameCol.setCellValueFactory(new PropertyValueFactory<>("customerName"));
         compRequestedDateCol.setCellValueFactory(new PropertyValueFactory<>("deliveryDate"));
         compDeliveredDateCol.setCellValueFactory(new PropertyValueFactory<>("deliveredDate"));
+        compRatingCol.setCellValueFactory(new PropertyValueFactory<>("rating"));
         compTotalCol.setCellValueFactory(new PropertyValueFactory<>("total"));
+
+        compActionsCol.setCellFactory(param -> new TableCell<>() {
+            private final Button viewBtn = new Button("View");
+            {
+                viewBtn.setStyle(
+                        "-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-size: 11px; -fx-padding: 5px 10px; -fx-background-radius: 3px;");
+                viewBtn.setOnAction(event -> {
+                    OrderDisplay orderDisplay = getTableView().getItems().get(getIndex());
+                    handleViewDetails(orderDisplay);
+                });
+            }
+
+            @Override
+            protected void updateItem(Void item, boolean empty) {
+                super.updateItem(item, empty);
+                setGraphic(empty ? null : viewBtn);
+            }
+        });
     }
 
     @FXML
@@ -241,6 +338,7 @@ public class CarrierController {
         handleRefreshAvailable();
         handleRefreshCurrent();
         handleRefreshCompleted();
+        updateRatingDisplay();
     }
 
     @FXML
@@ -262,11 +360,14 @@ public class CarrierController {
                                 ? order.getRequestedDeliveryTime().format(dateFormatter)
                                 : "N/A",
                         String.format("$%.2f", order.getTotal()),
-                        null));
+                        null,
+                        null,
+                        order.getNote()));
             }
 
             availableOrdersTable.setItems(displayOrders);
             System.out.println("Loaded " + orders.size() + " available orders");
+            updateStats();
         } catch (Exception e) {
             e.printStackTrace();
             showError("Failed to load available orders: " + e.getMessage());
@@ -292,11 +393,14 @@ public class CarrierController {
                                 ? order.getRequestedDeliveryTime().format(dateFormatter)
                                 : "N/A",
                         String.format("$%.2f", order.getTotal()),
-                        null));
+                        null,
+                        null,
+                        order.getNote()));
             }
 
             currentOrdersTable.setItems(displayOrders);
             System.out.println("Loaded " + orders.size() + " current orders");
+            updateStats();
         } catch (Exception e) {
             e.printStackTrace();
             showError("Failed to load current orders: " + e.getMessage());
@@ -309,9 +413,21 @@ public class CarrierController {
             List<Order> orders = orderDao.findCompletedByCarrierId(carrierId);
             ObservableList<OrderDisplay> displayOrders = FXCollections.observableArrayList();
 
+            List<com.group25.greengrocer.model.CarrierRating> ratings = ratingDao
+                    .getRatingsByCarrierId((int) carrierId);
+            java.util.Map<Integer, Integer> ratingMap = new java.util.HashMap<>();
+            for (com.group25.greengrocer.model.CarrierRating r : ratings) {
+                ratingMap.put(r.getOrderId(), r.getRating());
+            }
+
             for (Order order : orders) {
                 com.group25.greengrocer.dao.UserDao.UserProfile user = userDao.findById(order.getCustomerId());
                 String customerName = user != null ? user.getFullName() : "Unknown";
+
+                String ratingStr = "-";
+                if (ratingMap.containsKey((int) order.getId())) {
+                    ratingStr = String.valueOf(ratingMap.get((int) order.getId()));
+                }
 
                 displayOrders.add(new OrderDisplay(
                         order.getId(),
@@ -323,11 +439,14 @@ public class CarrierController {
                         String.format("$%.2f", order.getTotal()),
                         order.getDeliveredTime() != null
                                 ? order.getDeliveredTime().format(dateFormatter)
-                                : "N/A"));
+                                : "N/A",
+                        ratingStr,
+                        order.getNote()));
             }
 
             completedOrdersTable.setItems(displayOrders);
             System.out.println("Loaded " + orders.size() + " completed orders");
+            updateStats();
         } catch (Exception e) {
             e.printStackTrace();
             showError("Failed to load completed orders: " + e.getMessage());
@@ -354,14 +473,68 @@ public class CarrierController {
     }
 
     private void handleCompleteOrder(OrderDisplay orderDisplay) {
-        try {
-            orderDao.completeOrder(orderDisplay.getOrderId());
-            showInfo("Order #" + orderDisplay.getOrderId() + " completed successfully!");
-            handleRefreshAll();
-        } catch (Exception e) {
-            e.printStackTrace();
-            showError("Failed to complete order: " + e.getMessage());
-        }
+        // Create a dialog to enter delivery date
+        javafx.scene.control.Dialog<java.time.LocalDateTime> dialog = new javafx.scene.control.Dialog<>();
+        dialog.setTitle("Complete Order");
+        dialog.setHeaderText("Enter delivery date and time for Order #" + orderDisplay.getOrderId());
+
+        // Set the button types
+        javafx.scene.control.ButtonType confirmButtonType = new javafx.scene.control.ButtonType("Complete",
+                javafx.scene.control.ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(confirmButtonType, javafx.scene.control.ButtonType.CANCEL);
+
+        // Create the date and time pickers
+        javafx.scene.layout.GridPane grid = new javafx.scene.layout.GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new javafx.geometry.Insets(20, 150, 10, 10));
+
+        javafx.scene.control.DatePicker datePicker = new javafx.scene.control.DatePicker(java.time.LocalDate.now());
+        javafx.scene.control.Spinner<Integer> hourSpinner = new javafx.scene.control.Spinner<>(0, 23,
+                java.time.LocalTime.now().getHour());
+        javafx.scene.control.Spinner<Integer> minuteSpinner = new javafx.scene.control.Spinner<>(0, 59,
+                java.time.LocalTime.now().getMinute());
+
+        hourSpinner.setEditable(true);
+        minuteSpinner.setEditable(true);
+
+        grid.add(new javafx.scene.control.Label("Delivery Date:"), 0, 0);
+        grid.add(datePicker, 1, 0);
+        grid.add(new javafx.scene.control.Label("Time (Hour):"), 0, 1);
+        grid.add(hourSpinner, 1, 1);
+        grid.add(new javafx.scene.control.Label("Time (Minute):"), 0, 2);
+        grid.add(minuteSpinner, 1, 2);
+
+        dialog.getDialogPane().setContent(grid);
+
+        // Style the dialog
+        styleAlert(new Alert(Alert.AlertType.INFORMATION), "success-alert"); // Reuse styling
+
+        // Convert the result to LocalDateTime when the confirm button is clicked
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == confirmButtonType) {
+                java.time.LocalDate date = datePicker.getValue();
+                int hour = hourSpinner.getValue();
+                int minute = minuteSpinner.getValue();
+                return java.time.LocalDateTime.of(date, java.time.LocalTime.of(hour, minute));
+            }
+            return null;
+        });
+
+        java.util.Optional<java.time.LocalDateTime> result = dialog.showAndWait();
+
+        result.ifPresent(deliveryDateTime -> {
+            try {
+                // Update the order with the delivery date
+                orderDao.completeOrderWithDate(orderDisplay.getOrderId(), deliveryDateTime);
+                showInfo("Order #" + orderDisplay.getOrderId() + " completed successfully!\nDelivery: "
+                        + deliveryDateTime.format(dateFormatter));
+                handleRefreshAll();
+            } catch (Exception e) {
+                e.printStackTrace();
+                showError("Failed to complete order: " + e.getMessage());
+            }
+        });
     }
 
     private void showError(String message) {
@@ -414,15 +587,19 @@ public class CarrierController {
         private final String deliveryDate;
         private final String total;
         private final String deliveredDate;
+        private final String rating;
+        private final String note;
 
         public OrderDisplay(long orderId, String customerName, String customerAddress,
-                String deliveryDate, String total, String deliveredDate) {
+                String deliveryDate, String total, String deliveredDate, String rating, String note) {
             this.orderId = orderId;
             this.customerName = customerName;
             this.customerAddress = customerAddress;
             this.deliveryDate = deliveryDate;
             this.total = total;
             this.deliveredDate = deliveredDate;
+            this.rating = rating;
+            this.note = note;
         }
 
         public long getOrderId() {
@@ -448,21 +625,28 @@ public class CarrierController {
         public String getDeliveredDate() {
             return deliveredDate;
         }
+
+        public String getRating() {
+            return rating;
+        }
+
+        public String getNote() {
+            return note;
+        }
     }
 
     @FXML
     private void handleShowProfile() {
         try {
             javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
-                    getClass().getResource("/fxml/carrier_profile.fxml"));
+                    getClass().getResource("/fxml/profile.fxml"));
             javafx.scene.Parent root = loader.load();
 
-            // Pass session data to ProfileController
-            CarrierProfileController controller = loader.getController();
-            controller.setCarrierSession(carrierId);
+            ProfileController profileController = loader.getController();
+            profileController.setUserSession(carrierId, carrierUsername, "carrier");
 
             welcomeText.getScene().setRoot(root);
-        } catch (Exception e) {
+        } catch (java.io.IOException e) {
             e.printStackTrace();
             showError("Failed to load profile page: " + e.getMessage());
         }

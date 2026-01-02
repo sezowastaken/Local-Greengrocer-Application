@@ -1,14 +1,22 @@
 package com.group25.greengrocer.controller;
 
-import com.group25.greengrocer.util.DbAdapter;
-import javafx.fxml.FXML;
-import javafx.scene.control.Label;
-import javafx.scene.control.PasswordField;
-import javafx.scene.control.TextField;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+
+import com.group25.greengrocer.model.Carrier;
+import com.group25.greengrocer.model.User;
+import com.group25.greengrocer.util.DbAdapter;
+import com.group25.greengrocer.util.Session;
+
+import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
+import javafx.scene.control.TextField;
+import javafx.stage.Stage;
 
 public class LoginController {
 
@@ -22,81 +30,143 @@ public class LoginController {
     private Label errorLabel;
 
     @FXML
+    public void initialize() {
+        // Migration removed per user request.
+    }
+
+    @FXML
     private void handleLogin() {
+
         String username = usernameField.getText();
         String password = passwordField.getText();
 
-        if (username == null || username.trim().isEmpty() || password == null || password.trim().isEmpty()) {
+        if (username == null || username.trim().isEmpty()
+                || password == null || password.trim().isEmpty()) {
             errorLabel.setText("Please enter both username and password.");
             errorLabel.getStyleClass().setAll("error-label");
             return;
         }
 
-        try {
-            Connection conn = DbAdapter.getConnection();
-            String query = "SELECT id, role FROM users WHERE username = ? AND password_hash = ?";
-            PreparedStatement currentState = conn.prepareStatement(query);
-            currentState.setString(1, username);
-            currentState.setString(2, password);
-            ResultSet result = currentState.executeQuery();
+        String query = "SELECT id, role, password_hash FROM users WHERE username = ?";
 
-            if (result.next()) {
-                String role = result.getString("role");
+        try (Connection conn = DbAdapter.getConnection();
+                PreparedStatement stmt = conn.prepareStatement(query)) {
+
+            stmt.setString(1, username);
+
+            try (ResultSet result = stmt.executeQuery()) {
+
+                if (!result.next()) {
+                    errorLabel.setText("Invalid username or password.");
+                    errorLabel.getStyleClass().setAll("error-label");
+                    return;
+                }
+
                 int userId = result.getInt("id");
+                String role = result.getString("role");
+                String storedPasswordHash = result.getString("password_hash");
+                String inputPasswordHash = hashPassword(password);
+
+                // DEBUG (keep)
+                System.out.println("DEBUG: Username: " + username);
+                System.out.println("DEBUG: Stored Hash: " + storedPasswordHash);
+                System.out.println("DEBUG: Input Hash: " + inputPasswordHash);
+
+                boolean passwordMatches = storedPasswordHash != null &&
+                        (storedPasswordHash.equals(inputPasswordHash)
+                                || storedPasswordHash.equals(password));
+
+                if (!passwordMatches) {
+                    errorLabel.setText("Invalid username or password.");
+                    errorLabel.getStyleClass().setAll("error-label");
+                    return;
+                }
+
+                // Create session user
+                User currentUser;
+                if ("carrier".equalsIgnoreCase(role)) {
+                    currentUser = new Carrier(userId, username, password);
+                } else {
+                    currentUser = new User(userId, username, password, role) {
+                    };
+                }
+
+                Session.setCurrentUser(currentUser);
+
+                errorLabel.setText("Login Successful! Welcome, " + role);
+                errorLabel.getStyleClass().setAll("success-label");
+
+                // Scene switching
+                Stage stage = (Stage) usernameField.getScene().getWindow();
+                Parent root = null;
 
                 if ("customer".equalsIgnoreCase(role)) {
-                    javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
+                    FXMLLoader loader = new FXMLLoader(
                             getClass().getResource("/fxml/customer.fxml"));
-                    javafx.scene.Parent root = loader.load();
+                    root = loader.load();
 
-                    // Pass session data
                     CustomerController controller = loader.getController();
                     controller.setCustomerSession(userId, username);
 
-                    usernameField.getScene().setRoot(root);
                 } else if ("carrier".equalsIgnoreCase(role)) {
-                    javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
+                    FXMLLoader loader = new FXMLLoader(
                             getClass().getResource("/fxml/carrier.fxml"));
-                    javafx.scene.Parent root = loader.load();
+                    root = loader.load();
 
-                    // Pass session data
                     CarrierController controller = loader.getController();
                     controller.setCarrierSession(userId, username);
                     controller.handleRefreshAll();
 
-                    usernameField.getScene().setRoot(root);
                 } else if ("owner".equalsIgnoreCase(role)) {
-                    javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(
+                    FXMLLoader loader = new FXMLLoader(
                             getClass().getResource("/fxml/owner.fxml"));
-                    javafx.scene.Parent root = loader.load();
-                    usernameField.getScene().setRoot(root);
-                } else {
-                    errorLabel.setText("Login Successful! Welcome, " + role);
-                    errorLabel.getStyleClass().setAll("success-label");
+                    root = loader.load();
+
+                    OwnerController controller = loader.getController();
+                    controller.setOwnerSession(userId, username);
                 }
-            } else {
-                errorLabel.setText("Invalid username or password.");
-                errorLabel.getStyleClass().setAll("error-label");
+
+                if (root != null) {
+                    stage.getScene().setRoot(root);
+                }
             }
+
         } catch (SQLException e) {
             e.printStackTrace();
             errorLabel.setText("Database connection error.");
             errorLabel.getStyleClass().setAll("error-label");
-        } catch (java.io.IOException e) {
+
+        } catch (Exception e) {
             e.printStackTrace();
             errorLabel.setText("Error loading view.");
             errorLabel.getStyleClass().setAll("error-label");
         }
     }
 
+    private String hashPassword(String password) {
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] encodedhash = digest.digest(password.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            StringBuilder hexString = new StringBuilder();
+            for (byte b : encodedhash) {
+                String hex = Integer.toHexString(0xff & b);
+                if (hex.length() == 1)
+                    hexString.append('0');
+                hexString.append(hex);
+            }
+            return hexString.toString();
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     @FXML
     private void handleRegisterLink() {
         try {
-            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/fxml/register.fxml"));
-            javafx.scene.Parent root = loader.load();
+            Parent root = FXMLLoader.load(
+                    getClass().getResource("/fxml/register.fxml"));
             usernameField.getScene().setRoot(root);
-        } catch (java.io.IOException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
             errorLabel.setText("Navigation failed.");
         }
     }

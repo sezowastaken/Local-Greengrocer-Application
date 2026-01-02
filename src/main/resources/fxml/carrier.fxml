@@ -4,130 +4,255 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Text?>
 <?import javafx.geometry.Insets?>
+<?import javafx.scene.shape.Circle?>
 
 <StackPane xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" 
            fx:controller="com.group25.greengrocer.controller.CarrierController"
-           prefWidth="960" prefHeight="540">
+           prefWidth="960" prefHeight="540"
+           styleClass="carrier-root"
+           stylesheets="@../css/app.css">
     
     <!-- Main Carrier Panel -->
-    <BorderPane stylesheets="@../css/app.css">
+    <BorderPane>
         
-        <!-- Header -->
-        <top>
-            <HBox spacing="20" alignment="CENTER_LEFT" styleClass="carrier-header">
-                <Text fx:id="welcomeText" text="Welcome, Carrier" styleClass="welcome-text"/>
-                <Region HBox.hgrow="ALWAYS"/>
-                <Button text="Refresh All" onAction="#handleRefreshAll" styleClass="refresh-btn"/>
-                <Button text="Profile" onAction="#handleShowProfile" styleClass="profile-btn"/>
-                <Button text="Logout" onAction="#handleLogout" styleClass="logout-btn"/>
-            </HBox>
-        </top>
-        
-        <!-- Main Content - 3 Sections -->
-        <center>
-            <VBox spacing="15" style="-fx-padding: 20; -fx-background-color: #f5f5f5;">
+        <!-- Collapsible Left Sidebar -->
+        <left>
+            <VBox fx:id="sidebarContainer" styleClass="carrier-sidebar" prefWidth="250" spacing="0">
                 
-                <!-- Available Orders Section -->
-                <VBox spacing="10" VBox.vgrow="ALWAYS">
-                    <HBox alignment="CENTER_LEFT" spacing="10">
-                        <Text text="Available Orders" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-fill: #333;"/>
-                        <Region HBox.hgrow="ALWAYS"/>
-                        <Button text="Refresh" onAction="#handleRefreshAvailable" styleClass="button-secondary" style="-fx-font-size: 12px; -fx-padding: 5 15;"/>
-                    </HBox>
+                <!-- User Profile Section -->
+                <VBox styleClass="carrier-sidebar-profile" spacing="12" alignment="CENTER">
+                    <padding>
+                        <Insets top="25" right="20" bottom="25" left="20"/>
+                    </padding>
                     
-                    <TableView fx:id="availableOrdersTable" VBox.vgrow="ALWAYS" style="-fx-background-color: white;">
-                        <columns>
-                            <TableColumn fx:id="availOrderIdCol" text="Order ID" prefWidth="80"/>
-                            <TableColumn fx:id="availCustomerNameCol" text="Customer Name" prefWidth="150"/>
-                            <TableColumn fx:id="availCustomerAddressCol" text="Customer Address" prefWidth="200"/>
-                            <TableColumn fx:id="availDeliveryDateCol" text="Delivery Date" prefWidth="130"/>
-                            <TableColumn fx:id="availTotalCol" text="Total ($)" prefWidth="100"/>
-                            <TableColumn fx:id="availActionsCol" text="Actions" prefWidth="150"/>
-                        </columns>
-                        <placeholder>
-                            <Label text="No available orders." style="-fx-text-fill: #999;"/>
-                        </placeholder>
-                    </TableView>
+                    <!-- Profile Picture Circle -->
+                    <StackPane>
+                        <Circle radius="40" styleClass="carrier-profile-circle"/>
+                        <Label text="👤" styleClass="carrier-profile-icon-large"/>
+                    </StackPane>
+                    
+                    <VBox spacing="4" alignment="CENTER">
+                        <Text fx:id="welcomeText" text="Carrier Name" styleClass="carrier-profile-name"/>
+                        <Label text="🚚 Delivery Agent" styleClass="carrier-profile-role"/>
+                        <HBox spacing="8" alignment="CENTER" styleClass="carrier-profile-stats">
+                            <padding>
+                                <Insets top="8" right="0" bottom="0" left="0"/>
+                            </padding>
+                            <VBox spacing="2" alignment="CENTER" styleClass="carrier-stat-box">
+                                <Label fx:id="activeCountLabel" text="0" styleClass="carrier-stat-value"/>
+                                <Label text="Active" styleClass="carrier-stat-label"/>
+                            </VBox>
+                            <Separator orientation="VERTICAL" prefHeight="30"/>
+                            <VBox spacing="2" alignment="CENTER" styleClass="carrier-stat-box">
+                                <Label fx:id="completedCountLabel" text="0" styleClass="carrier-stat-value"/>
+                                <Label text="Completed" styleClass="carrier-stat-label"/>
+                            </VBox>
+                        </HBox>
+                    </VBox>
                 </VBox>
                 
-                <!-- Current Orders Section -->
-                <VBox spacing="10" VBox.vgrow="ALWAYS">
-                    <HBox alignment="CENTER_LEFT" spacing="10">
-                        <Text text="Current Orders" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-fill: #333;"/>
-                        <Region HBox.hgrow="ALWAYS"/>
-                        <Button text="Refresh" onAction="#handleRefreshCurrent" styleClass="button-secondary" style="-fx-font-size: 12px; -fx-padding: 5 15;"/>
-                    </HBox>
-                    
-                    <TableView fx:id="currentOrdersTable" VBox.vgrow="ALWAYS" style="-fx-background-color: white;">
-                        <columns>
-                            <TableColumn fx:id="currOrderIdCol" text="Order ID" prefWidth="80"/>
-                            <TableColumn fx:id="currCustomerNameCol" text="Customer Name" prefWidth="150"/>
-                            <TableColumn fx:id="currCustomerAddressCol" text="Customer Address" prefWidth="200"/>
-                            <TableColumn fx:id="currDeliveryDateCol" text="Delivery Date" prefWidth="130"/>
-                            <TableColumn fx:id="currTotalCol" text="Total ($)" prefWidth="100"/>
-                            <TableColumn fx:id="currActionsCol" text="Actions" prefWidth="150"/>
-                        </columns>
-                        <placeholder>
-                            <Label text="No current orders." style="-fx-text-fill: #999;"/>
-                        </placeholder>
-                    </TableView>
-                </VBox>
-                
-                <!-- Completed Orders Section -->
-                <VBox spacing="10" VBox.vgrow="ALWAYS">
-                    <HBox alignment="CENTER_LEFT" spacing="10">
-                        <Text text="Completed Orders" style="-fx-font-size: 16px; -fx-font-weight: bold; -fx-fill: #333;"/>
-                        <Region HBox.hgrow="ALWAYS"/>
-                        <Button text="Refresh" onAction="#handleRefreshCompleted" styleClass="button-secondary" style="-fx-font-size: 12px; -fx-padding: 5 15;"/>
-                    </HBox>
-                    
-                    <TableView fx:id="completedOrdersTable" VBox.vgrow="ALWAYS" style="-fx-background-color: white;">
-                        <columns>
-                            <TableColumn fx:id="compOrderIdCol" text="Order ID" prefWidth="80"/>
-                            <TableColumn fx:id="compCustomerNameCol" text="Customer Name" prefWidth="150"/>
-                            <TableColumn fx:id="compRequestedDateCol" text="Requested Date" prefWidth="130"/>
-                            <TableColumn fx:id="compDeliveredDateCol" text="Delivered Date" prefWidth="130"/>
-                            <TableColumn fx:id="compTotalCol" text="Total ($)" prefWidth="100"/>
-                            <TableColumn fx:id="compActionsCol" text="Actions" prefWidth="120"/>
-                        </columns>
-                        <placeholder>
-                            <Label text="No completed orders." style="-fx-text-fill: #999;"/>
-                        </placeholder>
-                    </TableView>
-                </VBox>
+                <!-- Menu Items -->
+                <ScrollPane fitToWidth="true" styleClass="carrier-sidebar-scroll" VBox.vgrow="ALWAYS">
+                    <VBox spacing="5">
+                        <padding>
+                            <Insets top="15" right="15" bottom="20" left="15"/>
+                        </padding>
+                        
+                        <Label text="NAVIGATION" styleClass="carrier-menu-header"/>
+                        
+                        <Button text="🔄 Refresh All" onAction="#handleRefreshAll" styleClass="carrier-menu-btn" maxWidth="Infinity"/>
+                        
+                        <Separator styleClass="carrier-menu-separator"/>
+                        
+                        <Label text="ACCOUNT" styleClass="carrier-menu-header"/>
+                        
+                        <Button text="👤 My Profile" onAction="#handleShowProfile" styleClass="carrier-menu-btn" maxWidth="Infinity"/>
+                        
+                        <Separator styleClass="carrier-menu-separator"/>
+                        
+                        <Button text="🚪 Logout" onAction="#handleLogout" styleClass="carrier-menu-btn-logout" maxWidth="Infinity"/>
+                    </VBox>
+                </ScrollPane>
                 
             </VBox>
+        </left>
+        
+        <!-- Main Content Area -->
+        <center>
+            <BorderPane stylesheets="@../css/app.css">
+                
+                <!-- Top Header with Toggle Button -->
+                <top>
+                    <HBox alignment="CENTER_LEFT" styleClass="carrier-top-header" spacing="15">
+                        <padding>
+                            <Insets top="15" right="25" bottom="15" left="25"/>
+                        </padding>
+                        
+                        <!-- Sidebar Toggle Button -->
+                        <Button fx:id="sidebarToggleBtn" text="☰" styleClass="carrier-sidebar-toggle" onAction="#handleToggleSidebar"/>
+                        
+                        <Text text="📦 Delivery Management Dashboard" styleClass="carrier-header-title"/>
+                    </HBox>
+                </top>
+                
+                <!-- Main Content with ScrollPane -->
+                <center>
+                    <ScrollPane fitToWidth="true" styleClass="carrier-scroll-pane" vbarPolicy="AS_NEEDED" hbarPolicy="NEVER">
+                        <VBox spacing="20">
+                            <padding>
+                                <Insets top="25" right="25" bottom="25" left="25"/>
+                            </padding>
+                            
+                            <!-- Available Orders Section -->
+                            <VBox spacing="12" styleClass="carrier-section-card">
+                                <padding>
+                                    <Insets top="20" right="20" bottom="20" left="20"/>
+                                </padding>
+                                <HBox alignment="CENTER_LEFT" spacing="15">
+                                    <Label text="🆕" styleClass="carrier-section-icon"/>
+                                    <VBox spacing="2">
+                                        <Text text="Available Orders" styleClass="carrier-section-title-blue"/>
+                                        <Text text="Orders ready to be picked up" styleClass="carrier-section-subtitle"/>
+                                    </VBox>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Button text="🔄 Refresh" onAction="#handleRefreshAvailable" styleClass="carrier-btn-section-blue"/>
+                                </HBox>
+                                
+                                <TableView fx:id="availableOrdersTable" styleClass="carrier-table" prefHeight="180">
+                                    <columns>
+                                        <TableColumn fx:id="availOrderIdCol" text="📋 ID" prefWidth="70"/>
+                                        <TableColumn fx:id="availCustomerNameCol" text="👤 Customer" prefWidth="140"/>
+                                        <TableColumn fx:id="availCustomerAddressCol" text="📍 Address" prefWidth="200"/>
+                                        <TableColumn fx:id="availDeliveryDateCol" text="📅 Delivery" prefWidth="130"/>
+                                        <TableColumn fx:id="availTotalCol" text="💰 Total" prefWidth="90"/>
+                                        <TableColumn fx:id="availActionsCol" text="⚡ Actions" prefWidth="160"/>
+                                    </columns>
+                                    <placeholder>
+                                        <VBox alignment="CENTER" spacing="10" styleClass="carrier-empty-placeholder">
+                                            <Text text="📭" styleClass="carrier-empty-icon"/>
+                                            <Label text="No available orders at the moment" styleClass="carrier-empty-text"/>
+                                        </VBox>
+                                    </placeholder>
+                                </TableView>
+                            </VBox>
+                            
+                            <!-- Current Orders Section -->
+                            <VBox spacing="12" styleClass="carrier-section-card">
+                                <padding>
+                                    <Insets top="20" right="20" bottom="20" left="20"/>
+                                </padding>
+                                <HBox alignment="CENTER_LEFT" spacing="15">
+                                    <Label text="🚚" styleClass="carrier-section-icon"/>
+                                    <VBox spacing="2">
+                                        <Text text="Current Orders" styleClass="carrier-section-title-orange"/>
+                                        <Text text="Orders assigned to you for delivery" styleClass="carrier-section-subtitle"/>
+                                    </VBox>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Button text="🔄 Refresh" onAction="#handleRefreshCurrent" styleClass="carrier-btn-section-orange"/>
+                                </HBox>
+                                
+                                <TableView fx:id="currentOrdersTable" styleClass="carrier-table" prefHeight="180">
+                                    <columns>
+                                        <TableColumn fx:id="currOrderIdCol" text="📋 ID" prefWidth="70"/>
+                                        <TableColumn fx:id="currCustomerNameCol" text="👤 Customer" prefWidth="140"/>
+                                        <TableColumn fx:id="currCustomerAddressCol" text="📍 Address" prefWidth="200"/>
+                                        <TableColumn fx:id="currDeliveryDateCol" text="📅 Delivery" prefWidth="130"/>
+                                        <TableColumn fx:id="currTotalCol" text="💰 Total" prefWidth="90"/>
+                                        <TableColumn fx:id="currActionsCol" text="⚡ Actions" prefWidth="160"/>
+                                    </columns>
+                                    <placeholder>
+                                        <VBox alignment="CENTER" spacing="10" styleClass="carrier-empty-placeholder">
+                                            <Text text="📦" styleClass="carrier-empty-icon"/>
+                                            <Label text="No orders in progress" styleClass="carrier-empty-text"/>
+                                        </VBox>
+                                    </placeholder>
+                                </TableView>
+                            </VBox>
+                            
+                            <!-- Completed Orders Section -->
+                            <VBox spacing="12" styleClass="carrier-section-card">
+                                <padding>
+                                    <Insets top="20" right="20" bottom="20" left="20"/>
+                                </padding>
+                                <HBox alignment="CENTER_LEFT" spacing="15">
+                                    <Label text="✅" styleClass="carrier-section-icon"/>
+                                    <VBox spacing="2">
+                                        <Text text="Completed Orders" styleClass="carrier-section-title-green"/>
+                                        <Text text="Successfully delivered orders" styleClass="carrier-section-subtitle"/>
+                                    </VBox>
+                                    <Region HBox.hgrow="ALWAYS"/>
+                                    <Button text="🔄 Refresh" onAction="#handleRefreshCompleted" styleClass="carrier-btn-section-green"/>
+                                </HBox>
+                                
+                                <TableView fx:id="completedOrdersTable" styleClass="carrier-table" prefHeight="180">
+                                    <columns>
+                                        <TableColumn fx:id="compOrderIdCol" text="📋 ID" prefWidth="60"/>
+                                        <TableColumn fx:id="compCustomerNameCol" text="👤 Customer" prefWidth="120"/>
+                                        <TableColumn fx:id="compRequestedDateCol" text="📅 Requested" prefWidth="120"/>
+                                        <TableColumn fx:id="compDeliveredDateCol" text="✅ Delivered" prefWidth="120"/>
+                                        <TableColumn fx:id="compRatingCol" text="⭐ Rating" prefWidth="80"/>
+                                        <TableColumn fx:id="compTotalCol" text="💰 Total" prefWidth="80"/>
+                                        <TableColumn fx:id="compActionsCol" text="⚡ Actions" prefWidth="130"/>
+                                    </columns>
+                                    <placeholder>
+                                        <VBox alignment="CENTER" spacing="10" styleClass="carrier-empty-placeholder">
+                                            <Text text="📋" styleClass="carrier-empty-icon"/>
+                                            <Label text="No completed deliveries yet" styleClass="carrier-empty-text"/>
+                                        </VBox>
+                                    </placeholder>
+                                </TableView>
+                            </VBox>
+                            
+                        </VBox>
+                    </ScrollPane>
+                </center>
+                
+            </BorderPane>
         </center>
         
     </BorderPane>
 
-    <!-- Order Details Popup (Hidden by default) -->
+    <!-- Order Details Popup -->
     <VBox fx:id="orderDetailsPopup" visible="false" managed="false" 
-          spacing="15" style="-fx-padding: 25; -fx-background-color: white; -fx-border-color: #2c3e50; -fx-border-width: 2; -fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.4), 15, 0, 0, 0);"
-          maxWidth="600" maxHeight="500" alignment="CENTER">
+          spacing="20" styleClass="carrier-popup"
+          maxWidth="650" maxHeight="550" alignment="CENTER">
+        <padding>
+            <Insets top="30" right="30" bottom="30" left="30"/>
+        </padding>
         
-        <Label fx:id="orderDetailsTitleLabel" text="Order Details" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #2c3e50;"/>
+        <!-- Popup Header -->
+        <HBox alignment="CENTER_LEFT" spacing="15" styleClass="carrier-popup-header">
+            <padding>
+                <Insets top="15" right="20" bottom="15" left="20"/>
+            </padding>
+            <Label text="📦" styleClass="carrier-popup-icon"/>
+            <Label fx:id="orderDetailsTitleLabel" text="Order Details" styleClass="carrier-popup-title"/>
+        </HBox>
         
-        <TableView fx:id="orderDetailsTable" VBox.vgrow="ALWAYS">
+        <TableView fx:id="orderDetailsTable" VBox.vgrow="ALWAYS" styleClass="carrier-popup-table">
             <columns>
-                <TableColumn fx:id="detailProductNameCol" text="Product" prefWidth="200"/>
-                <TableColumn fx:id="detailQuantityCol" text="Qty" prefWidth="80"/>
-                <TableColumn fx:id="detailUnitCol" text="Unit" prefWidth="80"/>
-                <TableColumn fx:id="detailUnitPriceCol" text="Price" prefWidth="80"/>
-                <TableColumn fx:id="detailLineTotalCol" text="Total" prefWidth="80"/>
+                <TableColumn fx:id="detailProductNameCol" text="🛒 Product" prefWidth="220"/>
+                <TableColumn fx:id="detailQuantityCol" text="📊 Qty" prefWidth="80"/>
+                <TableColumn fx:id="detailUnitCol" text="📏 Unit" prefWidth="80"/>
+                <TableColumn fx:id="detailUnitPriceCol" text="💵 Price" prefWidth="90"/>
+                <TableColumn fx:id="detailLineTotalCol" text="💰 Total" prefWidth="100"/>
             </columns>
             <placeholder>
                 <Label text="No products in this order."/>
             </placeholder>
         </TableView>
 
-        <HBox spacing="20" alignment="CENTER_RIGHT">
-            <Label text="Total Amount:" style="-fx-font-weight: bold; -fx-font-size: 14px;"/>
-            <Label fx:id="orderDetailsTotalLabel" text="\$0.00" style="-fx-font-weight: bold; -fx-font-size: 16px; -fx-text-fill: #e74c3c;"/>
+        <!-- Total Section -->
+        <HBox spacing="20" alignment="CENTER_RIGHT" styleClass="carrier-popup-total">
+            <padding>
+                <Insets top="15" right="20" bottom="15" left="20"/>
+            </padding>
+            <Label text="💰 Total Amount:" styleClass="carrier-popup-total-label"/>
+            <Label fx:id="orderDetailsTotalLabel" text="\$0.00" styleClass="carrier-popup-total-value"/>
         </HBox>
 
-        <Button text="Close" onAction="#handleCloseOrderDetails"
-                style="-fx-background-color: #95a5a6; -fx-text-fill: white; -fx-font-weight: bold; -fx-padding: 8 20;"/>
+        <!-- Close Button -->
+        <Button text="✖ Close" onAction="#handleCloseOrderDetails" styleClass="carrier-popup-close-btn"/>
     </VBox>
     
 </StackPane>

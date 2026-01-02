@@ -3,6 +3,7 @@
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Text?>
+<?import javafx.scene.image.*?>
 
 <StackPane xmlns:fx="http://javafx.com/fxml" fx:controller="com.group25.greengrocer.controller.RegisterController"
            stylesheets="@../css/app.css">
@@ -31,12 +32,32 @@
             <Label text="Role"/>
             <ComboBox fx:id="roleComboBox" maxWidth="Infinity" promptText="Select Role" />
         </VBox>
+
+        <VBox fx:id="licenseUploadSection" spacing="10" managed="false" visible="false" style="-fx-padding: 10; -fx-background-color: #f9f9f9; -fx-background-radius: 5;">
+             <Label text="Driver License Photos (Required)" style="-fx-font-weight: bold; -fx-font-size: 12px;"/>
+             <HBox spacing="10" alignment="CENTER">
+                 <VBox spacing="5" alignment="CENTER">
+                     <Button text="Front Side" onAction="#handleUploadFront" styleClass="button-secondary" style="-fx-font-size: 11px;"/>
+                     <Label fx:id="lblFrontStatus" text="Pending" style="-fx-font-size: 10px;"/>
+                     <ImageView fx:id="imgLicenseFrontPreview" fitWidth="80" fitHeight="50" preserveRatio="true"/>
+                 </VBox>
+                 <VBox spacing="5" alignment="CENTER">
+                     <Button text="Back Side" onAction="#handleUploadBack" styleClass="button-secondary" style="-fx-font-size: 11px;"/>
+                     <Label fx:id="lblBackStatus" text="Pending" style="-fx-font-size: 10px;"/>
+                     <ImageView fx:id="imgLicenseBackPreview" fitWidth="80" fitHeight="50" preserveRatio="true"/>
+                 </VBox>
+             </HBox>
+        </VBox>
         
         <Button text="Register" onAction="#handleRegister" maxWidth="Infinity" styleClass="button-primary" defaultButton="true"/>
         
         <Label fx:id="messageLabel" styleClass="error-label"/>
         
         <Hyperlink text="Already have an account? Login" onAction="#handleGoToLogin" style="-fx-text-fill: #4CAF50;"/>
+        
+        <Separator style="-fx-padding: 10 0;"/>
+        
+
     </VBox>
     
 </StackPane>

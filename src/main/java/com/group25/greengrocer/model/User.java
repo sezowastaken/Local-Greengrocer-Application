@@ -5,6 +5,7 @@ public abstract class User {
     protected String username;
     protected String password;
     protected String role;
+    protected String status = "APPROVED";
 
     public User(int id, String username, String password, String role) {
         this.id = id;
@@ -27,5 +28,13 @@ public abstract class User {
 
     public String getRole() {
         return role;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
     }
 }
