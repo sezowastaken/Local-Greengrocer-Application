@@ -129,6 +129,25 @@ public class CustomerController {
         applyHoverScale(fruitsToggle, 1.05);
 
         refreshProductCards();
+
+        // Default: Shop View
+        updateNavigationState("SHOP");
+    }
+
+    private void updateNavigationState(String currentView) {
+        if (shopButton == null)
+            return;
+
+        switch (currentView) {
+            case "SHOP":
+                shopButton.setVisible(false);
+                shopButton.setManaged(false);
+                break;
+            default:
+                shopButton.setVisible(true);
+                shopButton.setManaged(true);
+                break;
+        }
     }
 
     private void applyHoverScale(javafx.scene.Node node, double scaleFactor) {
@@ -423,6 +442,7 @@ public class CustomerController {
 
             // Navigate back to shop or stay? Usually stay or show empty cart.
             handleBackToShop();
+            updateNavigationState("SHOP");
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -559,7 +579,7 @@ public class CustomerController {
         // Style the dialog
         DialogPane dialogPane = dialog.getDialogPane();
         try {
-            dialogPane.getStylesheets().add(getClass().getResource("/css/app.css").toExternalForm());
+            dialogPane.getStylesheets().add(getClass().getResource("/css/customer.css").toExternalForm());
             dialogPane.getStyleClass().add("custom-alert");
         } catch (Exception e) {
             // ignore
@@ -699,6 +719,7 @@ public class CustomerController {
         hideAllViews();
         cartView.setVisible(true);
         updateCartView();
+        updateNavigationState("CART");
     }
 
     @FXML
@@ -716,6 +737,7 @@ public class CustomerController {
             fruitView.setManaged(true);
         }
         refreshProductCards();
+        updateNavigationState("SHOP");
     }
 
     private void updateCartView() {
@@ -839,6 +861,7 @@ public class CustomerController {
         hideAllViews();
         profileView.setVisible(true);
         loadProfileData();
+        updateNavigationState("PROFILE");
     }
 
     @FXML
@@ -846,6 +869,7 @@ public class CustomerController {
         hideAllViews();
         ordersView.setVisible(true);
         refreshOrders();
+        updateNavigationState("ORDERS");
     }
 
     private void hideAllViews() {
@@ -1167,7 +1191,7 @@ public class CustomerController {
     private void styleAlert(Dialog<?> alert) {
         DialogPane dialogPane = alert.getDialogPane();
         try {
-            dialogPane.getStylesheets().add(getClass().getResource("/css/app.css").toExternalForm());
+            dialogPane.getStylesheets().add(getClass().getResource("/css/customer.css").toExternalForm());
             dialogPane.getStyleClass().add("custom-alert");
         } catch (Exception e) {
             System.err.println("Could not load CSS for alert: " + e.getMessage());
@@ -1315,6 +1339,7 @@ public class CustomerController {
         hideAllViews();
         messagesView.setVisible(true);
         handleRefreshMessages();
+        updateNavigationState("MESSAGES");
     }
 
     @FXML

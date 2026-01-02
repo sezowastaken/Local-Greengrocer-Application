@@ -62,7 +62,7 @@ public class NotificationUtil {
 
         // Load CSS
         try {
-            String cssPath = Objects.requireNonNull(NotificationUtil.class.getResource("/css/app.css"))
+            String cssPath = Objects.requireNonNull(NotificationUtil.class.getResource("/css/login.css"))
                     .toExternalForm();
             dialogPane.getStylesheets().add(cssPath);
         } catch (Exception e) {
@@ -100,7 +100,7 @@ public class NotificationUtil {
 
         // Load CSS
         try {
-            String cssPath = Objects.requireNonNull(NotificationUtil.class.getResource("/css/app.css"))
+            String cssPath = Objects.requireNonNull(NotificationUtil.class.getResource("/css/login.css"))
                     .toExternalForm();
             dialogPane.getStylesheets().add(cssPath);
         } catch (Exception e) {

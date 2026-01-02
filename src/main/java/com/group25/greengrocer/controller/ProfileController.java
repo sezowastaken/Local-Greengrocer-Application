@@ -293,7 +293,14 @@ public class ProfileController {
     private void styleAlert(Alert alert, String styleClass) {
         DialogPane dialogPane = alert.getDialogPane();
         try {
-            dialogPane.getStylesheets().add(getClass().getResource("/css/app.css").toExternalForm());
+            String cssFile = "/css/login.css"; // Default fallback
+            if (role != null && !role.isEmpty()) {
+                // Roles are usually "Customer", "Carrier", "Owner". Duplicated files are
+                // customer.css, carrier.css, owner.css
+                // This assumes role names map cleanly to css file names.
+                cssFile = "/css/" + role.toLowerCase() + ".css";
+            }
+            dialogPane.getStylesheets().add(getClass().getResource(cssFile).toExternalForm());
             dialogPane.getStyleClass().add("custom-alert");
             dialogPane.getStyleClass().add(styleClass);
         } catch (Exception e) {

@@ -1,0 +1,227 @@
+/* =============================================================================
+   LOGIN SCREEN STYLES
+   (Standalone File - Globals Duplicated for Isolation)
+   ============================================================================= */
+
+/* --- GLOBAL STYLES (Duplicated) --- */
+.root {
+    -fx-font-family: 'Segoe UI', sans-serif;
+    -fx-background-color: #F7FAFC;
+    /* New Background */
+}
+
+/* Forms & Inputs */
+.text-field,
+.password-field {
+    -fx-padding: 10px;
+    -fx-background-radius: 3px;
+    -fx-border-color: #E2E8F0;
+    /* New Border */
+    -fx-border-radius: 3px;
+    -fx-text-fill: #2D3748;
+    /* Main Text */
+    -fx-background-color: #FFFFFF;
+    /* Surface */
+}
+
+.text-field:focused,
+.password-field:focused {
+    -fx-border-color: #4CAF50;
+    /* Primary */
+}
+
+/* Button Styles (Global) */
+.button-primary {
+    -fx-background-color: #4CAF50;
+    /* Primary */
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-padding: 8px 16px;
+    -fx-background-radius: 20px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(76, 175, 80, 0.3), 5, 0, 0, 2);
+    -fx-border-width: 0;
+}
+
+.button-primary:hover {
+    -fx-background-color: #388E3C;
+    /* Dark Hover */
+    -fx-effect: dropshadow(three-pass-box, rgba(56, 142, 60, 0.5), 8, 0, 0, 3);
+}
+
+.button-secondary {
+    -fx-background-color: #E2E8F0;
+    /* Border Color used for secondary bg */
+    -fx-text-fill: #718096;
+    /* Secondary Text */
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-padding: 8px 16px;
+    -fx-background-radius: 20px;
+    -fx-cursor: hand;
+    -fx-border-color: #CBD5E0;
+    -fx-border-width: 1px;
+    -fx-border-radius: 20px;
+}
+
+.button-secondary:hover {
+    -fx-background-color: #CBD5E0;
+    -fx-text-fill: #2D3748;
+    /* Main Text */
+    -fx-border-color: #A0AEC0;
+}
+
+.button-danger {
+    -fx-background-color: #e74c3c;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-font-size: 13px;
+    -fx-padding: 8px 16px;
+    -fx-background-radius: 20px;
+    -fx-cursor: hand;
+    -fx-effect: dropshadow(three-pass-box, rgba(231, 76, 60, 0.3), 5, 0, 0, 2);
+    -fx-border-width: 0;
+}
+
+.button-danger:hover {
+    -fx-background-color: #c0392b;
+    -fx-effect: dropshadow(three-pass-box, rgba(231, 76, 60, 0.5), 8, 0, 0, 3);
+}
+
+/* Feedback Labels */
+.error-label {
+    -fx-text-fill: #dc3545;
+}
+
+.success-label {
+    -fx-text-fill: #28a745;
+}
+
+/* Notification Toasts */
+.notification-item {
+    -fx-background-color: #FFFFFF;
+    /* Surface */
+    -fx-padding: 10px 15px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.1), 5, 0, 0, 0);
+    -fx-background-radius: 5px;
+    -fx-border-radius: 5px;
+    -fx-min-width: 250px;
+}
+
+.notification-message {
+    -fx-font-size: 14px;
+    -fx-text-fill: #2D3748;
+    /* Main Text */
+}
+
+.notification-success {
+    -fx-border-color: #4CAF50;
+    /* Primary */
+    -fx-border-width: 0 0 0 5px;
+}
+
+.notification-error {
+    -fx-border-color: #e74c3c;
+    -fx-border-width: 0 0 0 5px;
+}
+
+.notification-info {
+    -fx-border-color: #3498db;
+    -fx-border-width: 0 0 0 5px;
+}
+
+/* Custom Alerts */
+.custom-alert {
+    -fx-background-color: transparent;
+}
+
+.custom-alert .dialog-pane {
+    -fx-background-color: #FFFFFF;
+    /* Surface */
+    -fx-background-radius: 8px;
+    -fx-border-radius: 8px;
+    -fx-padding: 15px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.2), 10, 0, 0, 5);
+}
+
+.custom-alert.success-alert .dialog-pane {
+    -fx-border-color: #4CAF50;
+    /* Primary */
+    -fx-border-width: 0 0 0 5px;
+}
+
+.custom-alert.error-alert .dialog-pane {
+    -fx-border-color: #e74c3c;
+    -fx-border-width: 0 0 0 5px;
+}
+
+.custom-alert.info-alert .dialog-pane {
+    -fx-border-color: #3498db;
+    -fx-border-width: 0 0 0 5px;
+}
+
+.custom-alert.confirmation-alert .dialog-pane {
+    -fx-border-color: #f39c12;
+    -fx-border-width: 0 0 0 5px;
+}
+
+.custom-alert .dialog-pane .header-panel {
+    -fx-background-color: transparent;
+}
+
+.custom-alert .dialog-pane .label {
+    -fx-text-fill: #2D3748;
+    /* Main Text */
+    -fx-font-size: 14px;
+    -fx-wrap-text: true;
+}
+
+.custom-alert .dialog-pane .button-bar .button {
+    -fx-background-color: #E2E8F0;
+    /* Border Color */
+    -fx-text-fill: #2D3748;
+    /* Main Text */
+    -fx-font-weight: bold;
+    -fx-background-radius: 4px;
+    -fx-cursor: hand;
+    -fx-padding: 8px 15px;
+}
+
+.custom-alert.success-alert .dialog-pane .button-bar .button {
+    -fx-background-color: #4CAF50;
+    /* Primary */
+    -fx-text-fill: white;
+}
+
+.custom-alert.error-alert .dialog-pane .button-bar .button {
+    -fx-background-color: #e74c3c;
+    -fx-text-fill: white;
+}
+
+.custom-alert.info-alert .dialog-pane .button-bar .button {
+    -fx-background-color: #3498db;
+    -fx-text-fill: white;
+}
+
+.custom-alert.confirmation-alert .dialog-pane .button-bar .button {
+    -fx-background-color: #f39c12;
+    -fx-text-fill: white;
+}
+
+/* --- LOGIN SPECIFIC STYLES --- */
+.login-container {
+    -fx-background-color: #FFFFFF;
+    /* Surface */
+    -fx-padding: 30px;
+    -fx-spacing: 15px;
+    -fx-effect: dropshadow(three-pass-box, rgba(0, 0, 0, 0.1), 10, 0, 0, 0);
+    -fx-background-radius: 5px;
+}
+
+.login-title {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #2D3748;
+    /* Main Text */
+}
