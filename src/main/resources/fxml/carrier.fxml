@@ -34,6 +34,16 @@
                     <VBox spacing="4" alignment="CENTER">
                         <Text fx:id="welcomeText" text="Carrier Name" styleClass="carrier-profile-name"/>
                         <Label text="🚚 Delivery Agent" styleClass="carrier-profile-role"/>
+                        
+                        <!-- Rating Display -->
+                        <HBox spacing="5" alignment="CENTER" styleClass="carrier-rating-box">
+                            <padding>
+                                <Insets top="6" right="0" bottom="6" left="0"/>
+                            </padding>
+                            <Label text="⭐" styleClass="carrier-rating-star"/>
+                            <Label fx:id="ratingLabel" text="Rating: 0.0/5" styleClass="carrier-rating-text"/>
+                        </HBox>
+                        
                         <HBox spacing="8" alignment="CENTER" styleClass="carrier-profile-stats">
                             <padding>
                                 <Insets top="8" right="0" bottom="0" left="0"/>
