@@ -114,11 +114,61 @@ public class CarrierController {
     // ...
     private com.group25.greengrocer.dao.RatingDao ratingDao = new com.group25.greengrocer.dao.RatingDao();
 
+    // Sidebar toggle
+    @FXML
+    private javafx.scene.layout.VBox sidebarContainer;
+    @FXML
+    private javafx.scene.control.Button sidebarToggleBtn;
+    private boolean sidebarVisible = true;
+
+    // Stats labels
+    @FXML
+    private javafx.scene.control.Label activeCountLabel;
+    @FXML
+    private javafx.scene.control.Label completedCountLabel;
+
     public void setCarrierSession(long id, String username) {
         this.carrierId = id;
         this.carrierUsername = username;
-        welcomeText.setText("Welcome, " + username);
+        welcomeText.setText(username);
         updateRatingDisplay();
+        updateStats();
+    }
+
+    private void updateStats() {
+        if (activeCountLabel != null && completedCountLabel != null) {
+            int activeCount = currentOrdersTable.getItems().size();
+            int completedCount = completedOrdersTable.getItems().size();
+            activeCountLabel.setText(String.valueOf(activeCount));
+            completedCountLabel.setText(String.valueOf(completedCount));
+        }
+    }
+
+    @FXML
+    private void handleToggleSidebar() {
+        if (sidebarVisible) {
+            // Hide sidebar with animation
+            javafx.animation.TranslateTransition transition = new javafx.animation.TranslateTransition(
+                    javafx.util.Duration.millis(300), sidebarContainer);
+            transition.setToX(-250);
+            transition.setOnFinished(e -> {
+                sidebarContainer.setVisible(false);
+                sidebarContainer.setManaged(false);
+            });
+            transition.play();
+            sidebarToggleBtn.setText("☰");
+        } else {
+            // Show sidebar with animation
+            sidebarContainer.setVisible(true);
+            sidebarContainer.setManaged(true);
+            sidebarContainer.setTranslateX(-250);
+            javafx.animation.TranslateTransition transition = new javafx.animation.TranslateTransition(
+                    javafx.util.Duration.millis(300), sidebarContainer);
+            transition.setToX(0);
+            transition.play();
+            sidebarToggleBtn.setText("✕");
+        }
+        sidebarVisible = !sidebarVisible;
     }
 
     private void updateRatingDisplay() {
@@ -317,6 +367,7 @@ public class CarrierController {
 
             availableOrdersTable.setItems(displayOrders);
             System.out.println("Loaded " + orders.size() + " available orders");
+            updateStats();
         } catch (Exception e) {
             e.printStackTrace();
             showError("Failed to load available orders: " + e.getMessage());
@@ -349,6 +400,7 @@ public class CarrierController {
 
             currentOrdersTable.setItems(displayOrders);
             System.out.println("Loaded " + orders.size() + " current orders");
+            updateStats();
         } catch (Exception e) {
             e.printStackTrace();
             showError("Failed to load current orders: " + e.getMessage());
@@ -394,6 +446,7 @@ public class CarrierController {
 
             completedOrdersTable.setItems(displayOrders);
             System.out.println("Loaded " + orders.size() + " completed orders");
+            updateStats();
         } catch (Exception e) {
             e.printStackTrace();
             showError("Failed to load completed orders: " + e.getMessage());
