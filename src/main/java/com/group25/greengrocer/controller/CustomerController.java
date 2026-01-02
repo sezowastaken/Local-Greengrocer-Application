@@ -10,9 +10,16 @@ import javafx.scene.image.ImageView;
 import javafx.scene.layout.FlowPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.Region;
 import javafx.scene.text.Text;
+
+import javafx.scene.control.Dialog;
+import javafx.scene.control.ButtonType;
+import javafx.scene.control.ButtonBar;
+import javafx.scene.control.Slider;
+import javafx.scene.layout.GridPane;
 
 import java.io.IOException;
 
@@ -36,6 +43,33 @@ import com.group25.greengrocer.service.LoyaltyService;
 import com.group25.greengrocer.model.Coupon;
 import com.group25.greengrocer.dao.CouponDao;
 
+/**
+ * Controller for the customer dashboard screen.
+ * 
+ * This controller manages the main customer interface, including:
+ * - Product browsing (vegetables and fruits with category toggle)
+ * - Shopping cart management (add, remove, update quantities)
+ * - Order placement and history viewing
+ * - Coupon management and application
+ * - Product rating and reviews
+ * - Messaging with the owner
+ * - Profile viewing and management
+ * - Loyalty discount tracking
+ * 
+ * The dashboard features:
+ * - Animated UI elements with hover effects
+ * - Category-based product filtering
+ * - Real-time cart updates
+ * - Order tracking with status updates
+ * - Invoice download functionality
+ * - Profile image upload and display
+ * 
+ * @see ProductDao
+ * @see OrderDao
+ * @see CouponDao
+ * @see MessageDao
+ * @see UserDao
+ */
 public class CustomerController {
 
     @FXML
@@ -67,6 +101,16 @@ public class CustomerController {
     @FXML
     private MenuButton menuButton;
 
+    /**
+     * Initializes the customer dashboard.
+     * 
+     * Sets up the UI components including:
+     * - Category toggle buttons (vegetables and fruits) with SVG icons
+     * - Product tables and message tables
+     * - Hover animations for interactive elements
+     * - Category switching listeners
+     * - Initial product card display
+     */
     @FXML
     public void initialize() {
         // Create Vegetables Toggle Content: Icon + Label in VBox
@@ -208,13 +252,22 @@ public class CustomerController {
         }
 
         double getTotalPrice() {
-            return product.getPrice() * quantity;
+            return product.getDynamicPrice() * quantity;
         }
     }
 
     private long customerId;
     private String customerUsername;
 
+    /**
+     * Sets the customer session information.
+     * 
+     * Called by LoginController after successful authentication to initialize
+     * the customer's session data and load their profile information.
+     * 
+     * @param id The customer's user ID
+     * @param name The customer's username
+     */
     public void setCustomerSession(long id, String name) {
         this.customerId = id;
         this.customerUsername = name;
@@ -222,6 +275,12 @@ public class CustomerController {
     }
 
     @FXML
+    /**
+     * Handles the "Proceed to Payment" action.
+     * 
+     * Validates that the cart is not empty, calculates the final price including
+     * discounts and loyalty rates, and displays the payment confirmation dialog.
+     */
     private void handleProceedToPayment() {
         if (cart.isEmpty()) {
             showAlert(Alert.AlertType.ERROR, "Cart is Empty", "Please add items to your cart before checking out.");
@@ -302,6 +361,12 @@ public class CustomerController {
     }
 
     @FXML
+    /**
+     * Handles coupon code application.
+     * 
+     * Validates the coupon code, checks if it's already used by the customer,
+     * and applies the discount if valid. Updates the cart total accordingly.
+     */
     private void handleApplyCoupon() {
         String code = couponCodeField.getText().trim();
         if (code.isEmpty())
@@ -336,6 +401,13 @@ public class CustomerController {
     }
 
     @FXML
+    /**
+     * Handles order confirmation and placement.
+     * 
+     * Creates a new order in the database with all cart items, applies discounts,
+     * generates an invoice, updates product stock, and clears the cart.
+     * Uses OrderService to ensure transactional integrity.
+     */
     private void handleConfirmPayment() {
         if (customerId == 0) {
             showAlert(Alert.AlertType.ERROR, "Session Error", "Please logout and login again.");
@@ -398,7 +470,7 @@ public class CustomerController {
                         ci.product.isPiece() ? com.group25.greengrocer.model.UnitType.PCS
                                 : com.group25.greengrocer.model.UnitType.KG,
                         ci.quantity,
-                        ci.product.getPrice(),
+                        ci.product.getDynamicPrice(),
                         ci.getTotalPrice());
                 oi.setProductName(ci.product.getName());
                 orderItems.add(oi);
@@ -486,19 +558,27 @@ public class CustomerController {
         // card itself)
         card.getChildren().clear();
 
+        StackPane imageContainer = new StackPane();
+        imageContainer.setPrefSize(100, 100);
+        imageContainer.setMinSize(100, 100);
+        imageContainer.setMaxSize(100, 100);
+        imageContainer.getStyleClass().add("product-image-container");
+
         if (product.getProductImage() != null) {
             ImageView imgView = new ImageView(product.getProductImage());
             imgView.setFitWidth(100);
             imgView.setFitHeight(100);
             imgView.setPreserveRatio(true);
             imgView.getStyleClass().add("product-image");
-            card.getChildren().add(imgView);
+            imageContainer.getChildren().add(imgView);
         }
+        card.getChildren().add(imageContainer);
 
         Label nameLabel = new Label(product.getName());
         nameLabel.getStyleClass().add("product-name");
 
-        Label priceLabel = new Label("$" + product.getPrice() + " per " + (product.isPiece() ? "piece" : "kg"));
+        Label priceLabel = new Label("$" + String.format("%.2f", product.getDynamicPrice()) + " per "
+                + (product.isPiece() ? "piece" : "kg"));
         priceLabel.getStyleClass().add("product-price");
 
         Label stockLabel = new Label("Stock: " + product.getStock() + (product.isPiece() ? "" : " kg"));
@@ -645,6 +725,14 @@ public class CustomerController {
         }
     }
 
+    /**
+     * Adds a product to the shopping cart.
+     * 
+     * Checks stock availability, updates cart quantities, and refreshes the cart display.
+     * Handles both piece-based and weight-based products with appropriate quantity steps.
+     * 
+     * @param product The product to add to the cart
+     */
     private void handleAddToCart(Product product) {
         // Initialize/Update local stock map if not present
         localStockMap.putIfAbsent(product.getId(), product.getStock());
@@ -688,6 +776,11 @@ public class CustomerController {
     }
 
     @FXML
+    /**
+     * Navigates to the cart view.
+     * 
+     * Hides all other views and displays the shopping cart with current items.
+     */
     private void handleViewCart() {
         hideAllViews();
         cartView.setVisible(true);
@@ -721,14 +814,21 @@ public class CustomerController {
             row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
             row.setPadding(new javafx.geometry.Insets(10));
 
+            StackPane cartImageContainer = new StackPane();
+            cartImageContainer.setPrefSize(50, 50);
+            cartImageContainer.setMinSize(50, 50);
+            cartImageContainer.setMaxSize(50, 50);
+            cartImageContainer.setAlignment(javafx.geometry.Pos.CENTER);
+
             if (item.product.getProductImage() != null) {
                 ImageView imgView = new ImageView(item.product.getProductImage());
                 imgView.setFitWidth(50);
                 imgView.setFitHeight(50);
                 imgView.setPreserveRatio(true);
                 imgView.getStyleClass().add("cart-image");
-                row.getChildren().add(imgView);
+                cartImageContainer.getChildren().add(imgView);
             }
+            row.getChildren().add(cartImageContainer);
 
             Label name = new Label(item.product.getName());
             name.setPrefWidth(150);
@@ -751,6 +851,12 @@ public class CustomerController {
     }
 
     @FXML
+    /**
+     * Displays the customer profile in a dialog.
+     * 
+     * Loads the profile.fxml and passes the customer ID to the ProfileController
+     * for displaying and editing profile information.
+     */
     private void handleShowProfile() {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/profile.fxml"));
@@ -767,6 +873,11 @@ public class CustomerController {
     }
 
     @FXML
+    /**
+     * Handles user logout.
+     * 
+     * Clears the current session and navigates back to the login screen.
+     */
     private void handleLogout() {
         try {
             Parent root = FXMLLoader.load(getClass().getResource("/fxml/login.fxml"));
@@ -1195,6 +1306,7 @@ public class CustomerController {
 
     private final OrderDao orderDao = new OrderDao();
     private final MessageDao messageDao = new MessageDao();
+    private final com.group25.greengrocer.dao.CarrierRatingDao carrierRatingDao = new com.group25.greengrocer.dao.CarrierRatingDao();
 
     @FXML
     private void handleRefreshOrders() {
@@ -1230,7 +1342,10 @@ public class CustomerController {
         colOrderAction.setCellFactory(param -> new TableCell<>() {
             private final javafx.scene.control.Button btnInvoice = new javafx.scene.control.Button("Invoice");
             private final javafx.scene.control.Button btnCancel = new javafx.scene.control.Button("Cancel");
-            private final javafx.scene.layout.HBox pane = new javafx.scene.layout.HBox(5, btnInvoice, btnCancel);
+            private final javafx.scene.control.Button btnRate = new javafx.scene.control.Button("Rate"); // New Rate
+                                                                                                         // Button
+            private final javafx.scene.layout.HBox pane = new javafx.scene.layout.HBox(5, btnInvoice, btnCancel,
+                    btnRate);
 
             {
                 btnInvoice.getStyleClass().add("button-secondary");
@@ -1243,6 +1358,12 @@ public class CustomerController {
                 btnCancel.setOnAction(event -> {
                     Order order = getTableView().getItems().get(getIndex());
                     handleCancelOrder(order.getId());
+                });
+
+                btnRate.getStyleClass().add("button-primary");
+                btnRate.setOnAction(event -> {
+                    Order order = getTableView().getItems().get(getIndex());
+                    handleRateOrder(order);
                 });
             }
 
@@ -1259,8 +1380,73 @@ public class CustomerController {
                     if (order.getStatus() == com.group25.greengrocer.model.OrderStatus.PLACED) {
                         pane.getChildren().add(btnCancel);
                     }
+
+                    // Rating Logic
+                    if (order.getStatus() == com.group25.greengrocer.model.OrderStatus.DELIVERED
+                            && !carrierRatingDao.hasRated(order.getId())) {
+                        pane.getChildren().add(btnRate);
+                    }
+
                     setGraphic(pane);
                 }
+            }
+        });
+    }
+
+    private void handleRateOrder(Order order) {
+        // Create custom dialog
+        Dialog<com.group25.greengrocer.model.CarrierRating> dialog = new Dialog<>();
+        dialog.setTitle("Rate Order #" + order.getId());
+        dialog.setHeaderText("Rate your delivery experience");
+
+        ButtonType submitButtonType = new ButtonType("Submit", ButtonBar.ButtonData.OK_DONE);
+        dialog.getDialogPane().getButtonTypes().addAll(submitButtonType, ButtonType.CANCEL);
+
+        GridPane grid = new GridPane();
+        grid.setHgap(10);
+        grid.setVgap(10);
+        grid.setPadding(new javafx.geometry.Insets(20, 150, 10, 10));
+
+        Slider ratingSlider = new Slider(1, 5, 5);
+        ratingSlider.setMajorTickUnit(1);
+        ratingSlider.setMinorTickCount(0);
+        ratingSlider.setShowTickLabels(true);
+        ratingSlider.setSnapToTicks(true);
+
+        grid.add(new Label("Rating (1-5):"), 0, 0);
+        grid.add(ratingSlider, 1, 0);
+
+        dialog.getDialogPane().setContent(grid);
+
+        // Convert result
+        dialog.setResultConverter(dialogButton -> {
+            if (dialogButton == submitButtonType) {
+                int rating = (int) ratingSlider.getValue();
+                // carrierId might be null checking needed? Order status is DELIVERED so
+                // carrierId SHOULD be set.
+                int carrierId = (order.getCarrierId() != null) ? order.getCarrierId().intValue() : 0;
+
+                return new com.group25.greengrocer.model.CarrierRating(0, (int) order.getId(), (int) customerId,
+                        carrierId, rating, null, null);
+            }
+            return null;
+        });
+
+        java.util.Optional<com.group25.greengrocer.model.CarrierRating> result = dialog.showAndWait();
+
+        result.ifPresent(rating -> {
+            try {
+                if (rating.getCarrierId() == 0) {
+                    showAlert(Alert.AlertType.ERROR, "Error",
+                            "Cannot rate: No carrier linked to this delivered order (Data Error).");
+                    return;
+                }
+                carrierRatingDao.addRating(rating);
+                showAlert(Alert.AlertType.INFORMATION, "Success", "Thank you for your feedback!");
+                refreshOrders(); // Refresh to hide the button
+            } catch (Exception e) {
+                e.printStackTrace();
+                showAlert(Alert.AlertType.ERROR, "Error", "Failed to submit rating: " + e.getMessage());
             }
         });
     }

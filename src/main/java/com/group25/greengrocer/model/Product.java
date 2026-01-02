@@ -4,38 +4,39 @@ package com.group25.greengrocer.model;
  * Represents a product (vegetable or fruit) in the greengrocer application.
  * Products can be sold by weight (kg) or by piece (pcs).
  * 
- * Each product has a threshold value. When stock falls to or below this threshold,
+ * Each product has a threshold value. When stock falls to or below this
+ * threshold,
  * the price is automatically doubled to manage inventory.
  */
 public class Product {
-    
+
     private int id;
-    
+
     private String name;
-    
+
     private double price;
-    
+
     private double stock;
-    
+
     private String category;
-    
+
     private double threshold;
-    
+
     private boolean isPiece;
-    
+
     /** Product image for display in the UI */
     private javafx.scene.image.Image productImage;
 
     /**
      * Constructs a new Product with the specified details.
      * 
-     * @param id the unique identifier for the product
-     * @param name the name of the product
-     * @param price the base price per unit
-     * @param stock the current stock quantity
-     * @param category the category (Vegetable or Fruit)
-     * @param threshold the threshold for price doubling
-     * @param isPiece true if sold by piece, false if by weight
+     * @param id           the unique identifier for the product
+     * @param name         the name of the product
+     * @param price        the base price per unit
+     * @param stock        the current stock quantity
+     * @param category     the category (Vegetable or Fruit)
+     * @param threshold    the threshold for price doubling
+     * @param isPiece      true if sold by piece, false if by weight
      * @param imageContent the product image as an InputStream
      */
     public Product(int id, String name, double price, double stock, String category, double threshold,
@@ -132,5 +133,18 @@ public class Product {
      */
     public void setStock(double stock) {
         this.stock = stock;
+    }
+
+    /**
+     * Gets the dynamic price of the product.
+     * If stock is less than the threshold, the price is doubled.
+     * 
+     * @return the dynamic price
+     */
+    public double getDynamicPrice() {
+        if (stock < threshold) {
+            return price * 2;
+        }
+        return price;
     }
 }
